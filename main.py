@@ -3,6 +3,7 @@
 import wifimgr
 from time import sleep
 import machine
+import IMU
 
 try:
   import usocket as socket
@@ -36,7 +37,7 @@ try:
   s.listen(5)
 except OSError as e:
   machine.reset()
-
+timecount = 0
 while True:
   try:
     if gc.mem_free() < 102000:
@@ -48,14 +49,24 @@ while True:
     conn.settimeout(None)
     request = str(request)
     print('Content = %s' % request)
-    led_on = request.find('/?led=on')
-    led_off = request.find('/?led=off')
-    if led_on == 6:
-      print('LED ON')
+    IMU_start = request.find('/?IMU=recording') 
+    IMU_stop = request.find('/?IMU=stopped')
+    if IMU_start == 6:
+      print('STARTING IMU RECORDING')
       led.value(1)
-    if led_off == 6:
-      print('LED OFF')
+      IMUSTOP = False
+      print(IMUSTOP)
+      IMUrecord(timecount, IMUSTOP)
+
+    if IMU_stop == 6:
+      print('STOPPING IMU RECORDING')
       led.value(0)
+      IMUSTOP = True
+      print(IMUSTOP)
+      IMUrecord(timecount, IMUSTOP)
+      timecount = 0 #reset the timer for next recording
+
+
     response = web_page()
     conn.send('HTTP/1.1 200 OK\n')
     conn.send('Content-Type: text/html\n')

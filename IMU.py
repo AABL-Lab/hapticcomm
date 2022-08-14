@@ -1,19 +1,20 @@
 
 import time
-from lsm6dsox import LSM6DSOX
+from adafruit_lsm6ds.lsm6dsox import LSM6DSOX
 import gc
-from machine import I2C, Pin, Timer
+import board
+import storage
+#from machine import I2C, Pin, Timer
 
 
-class DataCollection: 
+def IMUrecord(IMUSTOP=False, filename='IMU_readings.csv'): 
     # Define the IMU 
-    lsm = LSM6DSOX(I2C(0, scl=Pin(13), sda=Pin(12)))
-    def __init__(self, duration=1000, filename="IMU_readings.csv"):
-        self.duration = duration  # set how long the IMU will record into the file, default 10 seconds
-        self.filename = filename # set where the IMU will record, default is IMU_readings.csv 
-
+    #lsm = LSM6DSOX(I2C(0, scl=Pin(13), sda=Pin(12)))
+    lsm = board.I2C()  # uses board.SCL and board.SDA
+    sensor = LSM6DSOX(lsm)
+    
     # open the file in "append" mode so we don't overwrite prior runs
-    filewrite = open(self.filename, "a")
+    filewrite = open(filename, "a")
 
     # set a header to connect data to experiment realtime
     today = time.localtime()
@@ -22,14 +23,8 @@ class DataCollection:
 
     time.sleep_ms(500) # IMU startup time
 
-
-    def timeoutcallback(t): # when the timer hits the time set, stop the IMU
-        IMUSTOP==True
-
-    # one shot timer, firing after self.duration ms, using machine.Timer
-    IMUtimer.init(mode=Timer.ONE_SHOT, period=self.duration, callback=timeoutcallback)
-
 #    IMUdatacollect = []
+    timecount = 0
     while not IMUSTOP: 
         gc.collect() # don't remember why we need to garbage collect every time
         
@@ -42,13 +37,17 @@ class DataCollection:
         GyroDataZ = lsm.read_gyro()[0] # gyro Z in radians/second
     #    print("Gyro data", GyroData)
     #    print("Acceleration data from timestep", timecount, "is", IMUdata)
-
+        
     # printing to file in CSV format, which we have to do by hand because micropython
         print(timecount,",",IMUDataX,",", IMUDataY,",", IMUDataZ,",",  GyroDataX,",",  GyroDataY,",",  GyroDataZ, file=filewrite)
         time.sleep_ms(10)
+        timecount = timecount+1
 
 
 
     filewrite.flush()
 
-
+if __name__ == "__main__":
+    print("IMU Recording")
+    IMUrecord()
+    

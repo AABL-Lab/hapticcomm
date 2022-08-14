@@ -1,0 +1,5 @@
+
+lib/adafruit_24lc32.mpy
+lib/adafruit_74hc595.mpy
+secrets.py
+*.mpy
