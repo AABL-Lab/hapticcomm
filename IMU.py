@@ -4,44 +4,31 @@ from adafruit_lsm6ds.lsm6dsox import LSM6DSOX
 import gc
 import board
 import storage
-#from machine import I2C, Pin, Timer
+print("The IMU module requires that pin D2 is shorted to ground to make the R2040 writeable")
 
-
-def IMUrecord(IMUSTOP=False, filename='IMU_readings.csv'): 
+def IMUrecord(timecount): 
     # Define the IMU 
-    #lsm = LSM6DSOX(I2C(0, scl=Pin(13), sda=Pin(12)))
-    lsm = board.I2C()  # uses board.SCL and board.SDA
-    sensor = LSM6DSOX(lsm)
-    
-    # open the file in "append" mode so we don't overwrite prior runs
-    filewrite = open(filename, "a")
+    #sensor = sensor6DSOX(I2C(0, scl=Pin(13), sda=Pin(12)))
+    i2c = board.I2C()  # uses board.SCL and board.SDA
+    sensor = LSM6DSOX(i2c)
 
-    # set a header to connect data to experiment realtime
-    today = time.localtime()
-    print(today) # printing to the REPL/terminal
-    print("Current Time/Date", today, file=filewrite) # print the header into the file
 
-    time.sleep_ms(500) # IMU startup time
-
-#    IMUdatacollect = []
-    timecount = 0
-    while not IMUSTOP: 
-        gc.collect() # don't remember why we need to garbage collect every time
-        
+#    IMUdatacollect = [] 
         # Collecting each of the values separately to make them easier to write/read as CSV
-        IMUDataX = lsm.read_accel()[0] # X acceleration data in m/s^2
-        IMUDataY = lsm.read_accel()[1] # Y acceleration data in m/s^2
-        IMUDataZ = lsm.read_accel()[2] # Z acceleration data in m/s^2
-        GyroDataX = lsm.read_gyro()[0] # gyro x in radians/second
-        GyroDataY = lsm.read_gyro()[0] # gyro Y in radians/second
-        GyroDataZ = lsm.read_gyro()[0] # gyro Z in radians/second
+    IMUDataX = sensor.acceleration[0] # X acceleration data in m/s^2
+    IMUDataY = sensor.acceleration[1] # Y acceleration data in m/s^2
+    IMUDataZ = sensor.acceleration[2] # Z acceleration data in m/s^2
+    GyroDataX = sensor.gyro[0] # gyro x in radians/second
+    GyroDataY = sensor.gyro[1] # gyro Y in radians/second
+    GyroDataZ = sensor.gyro[2] # gyro Z in radians/second
     #    print("Gyro data", GyroData)
     #    print("Acceleration data from timestep", timecount, "is", IMUdata)
         
-    # printing to file in CSV format, which we have to do by hand because micropython
-        print(timecount,",",IMUDataX,",", IMUDataY,",", IMUDataZ,",",  GyroDataX,",",  GyroDataY,",",  GyroDataZ, file=filewrite)
-        time.sleep_ms(10)
-        timecount = timecount+1
+    # printing to file in CSV format, which we have to do by hand because micropython/circuitpython
+    row = (timecount,IMUDataX, IMUDataY,IMUDataZ,GyroDataX,GyroDataY,GyroDataZ)
+    #print("printed to CSV", filename)
+    timecount = timecount+1
+    return timecount, row
 
 
 
@@ -49,5 +36,15 @@ def IMUrecord(IMUSTOP=False, filename='IMU_readings.csv'):
 
 if __name__ == "__main__":
     print("IMU Recording")
-    IMUrecord()
-    
+    IMUrun = True
+    timecount = 0
+    IMU_data = []
+    while IMUrun ==True:
+        timecount, row = IMUrecord(timecount) # read once from the IMU and write to the file
+        #print(timecount)
+        #print(row)
+        IMU_data.append(row)
+        if timecount > 20:
+            IMUrun = False
+    print(IMU_data)
+        

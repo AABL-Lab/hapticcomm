@@ -1,20 +1,28 @@
-#wifitest.py
- # SPDX-FileCopyrightText: 2021 Liz Clark for Adafruit Industries
-#
-# SPDX-License-Identifier: MIT
+# Kat Allen kat.allen@tufts.edu
+# Circuitpython for controlling an RP2040 Nano Connect IMU via web browser/wifi
 
-'''Adapted from the Adafruit_CircuitPython_ESP32SPI
-library example esp32spi_simpletest.py:
-https://github.com/adafruit/Adafruit_CircuitPython_ESP32SPI/
-blob/master/examples/esp32spi_simpletest.py '''
+'''Adapted from multiple Circuitpython examples including
+https://learn.adafruit.com/circuitpython-on-the-arduino-nano-rp2040-connect/wifi'''
+
 
 import board
 import busio
-from digitalio import DigitalInOut
+from digitalio import DigitalInOut, Direction
 import adafruit_requests as requests
 import adafruit_esp32spi.adafruit_esp32spi_socket as socket
+import adafruit_esp32spi.adafruit_esp32spi_wsgiserver as wsgi
 from adafruit_esp32spi import adafruit_esp32spi
+import adafruit_esp32spi.adafruit_esp32spi_wsgiserver as server
+from adafruit_wsgi.wsgi_app import WSGIApp
+import IMU
+import os
+import time
 
+
+# LED setup for onboard LED
+status_light = DigitalInOut(board.LED)
+status_light.direction = Direction.OUTPUT
+print("set up the LED")
 
 # Get wifi details and more from a secrets.py file
 try:
@@ -57,62 +65,220 @@ while not esp.is_connected:
 print("Connected to", str(esp.ssid, "utf-8"), "\tRSSI:", esp.rssi)
 print("My IP address is", esp.pretty_ip(esp.ip_address))
 
+# everything above this line works
 
-def web_page():
-  if led.value() == 1:
-    gpio_state="ON"
-  else:
-    gpio_state="OFF"
-  
-  html = open(mainpage.html)
-  return html
-  
-try:
-  s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-  #s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-  s.connect(('', 80))
-  s.recv(5)
-except OSError as e:
-  machine.reset()
-timecount = 0
-while True:
-  try:
-    if gc.mem_free() < 102000:
-      gc.collect()
-    conn, addr = s.accept()
-    conn.settimeout(3.0)
-    print('Got a connection from %s' % str(addr))
-    request = conn.recv(1024)
-    conn.settimeout(None)
-    request = str(request)
-    print('Content = %s' % request)
-    IMU_start = request.find('/?IMU=recording') 
-    IMU_stop = request.find('/?IMU=stopped')
-    if IMU_start == 6:
-      print('STARTING IMU RECORDING')
-      led.value(1)
-      IMUSTOP = False
-      print(IMUSTOP)
-      IMUrecord(timecount, IMUSTOP)
+# a function to serve files 
+def serve_file(self, file_path, directory=None):
+    status = "200 OK"
+    headers = [("Content-Type", self._get_content_type(file_path))]
 
-    if IMU_stop == 6:
-      print('STOPPING IMU RECORDING')
-      led.value(0)
-      IMUSTOP = True
-      print(IMUSTOP)
-      IMUrecord(timecount, IMUSTOP)
-      timecount = 0 #reset the timer for next recording
+    full_path = file_path if not directory else directory + file_path
+
+class SimpleWSGIApplication:
+    """
+    An example of a simple WSGI Application that supports
+    basic route handling and static asset file serving for common file types
+    """
+
+    INDEX = "/index.html"
+    CHUNK_SIZE = 8912  # max number of bytes to read at once when reading files
+
+    def __init__(self, static_dir=None, debug=False):
+        self._debug = debug
+        self._listeners = {}
+        self._start_response = None
+        self._static = static_dir
+        if self._static:
+            self._static_files = ["/" + file for file in os.listdir(self._static)]
+
+    def __call__(self, environ, start_response):
+        """
+        Called whenever the server gets a request.
+        The environ dict has details about the request per wsgi specification.
+        Call start_response with the response status string and headers as a list of tuples.
+        Return a single item list with the item being your response data string.
+        """
+        if self._debug:
+            self._log_environ(environ)
+
+        self._start_response = start_response
+        status = ""
+        headers = []
+        resp_data = []
+
+        key = self._get_listener_key(
+            environ["REQUEST_METHOD"].lower(), environ["PATH_INFO"]
+        )
+        if key in self._listeners:
+            status, headers, resp_data = self._listeners[key](environ)
+        if environ["REQUEST_METHOD"].lower() == "get" and self._static:
+            path = environ["PATH_INFO"]
+            if path in self._static_files:
+                status, headers, resp_data = self.serve_file(
+                    path, directory=self._static
+                )
+            elif path == "/" and self.INDEX in self._static_files:
+                status, headers, resp_data = self.serve_file(
+                    self.INDEX, directory=self._static
+                )
+
+        self._start_response(status, headers)
+        return resp_data
+
+    def on(self, method, path, request_handler):
+        """
+        Register a Request Handler for a particular HTTP method and path.
+        request_handler will be called whenever a matching HTTP request is received.
+        request_handler should accept the following args:
+            (Dict environ)
+        request_handler should return a tuple in the shape of:
+            (status, header_list, data_iterable)
+        :param str method: the method of the HTTP request
+        :param str path: the path of the HTTP request
+        :param func request_handler: the function to call
+        """
+        self._listeners[self._get_listener_key(method, path)] = request_handler
+
+    def serve_file(self, file_path, directory=None):
+        status = "200 OK"
+        print("served file",file_path)
+        headers = [("Content-Type", self._get_content_type(file_path))]
+
+        full_path = file_path if not directory else directory + file_path
+
+        def resp_iter():
+            with open(full_path, "rb") as file:
+                while True:
+                    chunk = file.read(self.CHUNK_SIZE)
+                    if chunk:
+                        yield chunk
+                    else:
+                        break
+
+        return (status, headers, resp_iter())
+
+    def _log_environ(self, environ):  # pylint: disable=no-self-use
+        print("environ map:")
+        for name, value in environ.items():
+            print(name, value)
+
+    def _get_listener_key(self, method, path):  # pylint: disable=no-self-use
+        return "{0}|{1}".format(method.lower(), path)
+
+    def _get_content_type(self, file):  # pylint: disable=no-self-use
+        ext = file.split(".")[-1]
+        if ext in ("html", "htm"):
+            return "text/html"
+        if ext == "js":
+            return "application/javascript"
+        if ext == "css":
+            return "text/css"
+        if ext in ("jpg", "jpeg"):
+            return "image/jpeg"
+        if ext == "png":
+            return "image/png"
+        return "text/plain"
 
 
-    response = web_page()
-    conn.send('HTTP/1.1 200 OK\n')
-    conn.send('Content-Type: text/html\n')
-    conn.send('Connection: close\n\n')
-    conn.sendall(response)
-    conn.close()
-  except OSError as e:
-    conn.close()
-    print('Connection closed')
+# Our HTTP Request handlers
+def led_on(environ):  # pylint: disable=unused-argument
+    print("LED on!")
+    status_light.value = True
+    return web_app.serve_file("static/index.html")
+
+
+def led_off(environ):  # pylint: disable=unused-argument
+    print("LED off!")
+    status_light.value = False
+    return web_app.serve_file("static/index.html")
+
+
+def IMU_on(environ): # starts the IMU recording
+    global IMU_recording
+    IMU_recording = True
+    status_light.value = True
+    print("IMU recording")
+    print("Current Date", today[0],".",today[1],".", today[2], "Time", today[3],":", today[4],":", today[5], file=filewrite) # print the header into the file
+    return web_app.serve_file("static/IMUon.html")
+
+def IMU_off(environ):
+    global IMU_recording
+    IMU_recording = False
+    status_light.value = False
+    print("IMU stopped")
+    for row in IMU_data: # print each row in the IMU data to the file
+        print(row, file=filewrite)
+        
+    print("End of reading", file=filewrite) # print into the file to end a session
+    print("Wrote to file")
+    return web_app.serve_file("static/IMUoff.html")
+    
     
 
-print("Done!")
+
+    
+
+# Here we create our application, setting the static directory location
+# and registering the above request_handlers for specific HTTP requests
+# we want to listen and respond to.
+static = "/static"
+try:
+    static_files = os.listdir(static)
+    if "index.html" not in static_files:
+        raise RuntimeError(
+            """
+            This example depends on an index.html, but it isn't present.
+            Please add it to the {0} directory""".format(
+                static
+            )
+        )
+except OSError as e:
+    raise RuntimeError(
+        """
+        This example depends on a static asset directory.
+        Please create one named {0} in the root of the device filesystem.""".format(
+            static
+        )
+    ) from e
+
+web_app = SimpleWSGIApplication(static_dir=static)
+web_app.on("GET", "/IMU_on", IMU_on)
+web_app.on("GET", "/IMU_off", IMU_off)
+#web_app.on("POST", "/ajax/ledcolor", led_color)
+
+# Here we setup our server, passing in our web_app as the application
+server.set_interface(esp)
+wsgiServer = server.WSGIServer(80, application=web_app)
+
+print("open this IP in your browser: ", esp.pretty_ip(esp.ip_address))
+
+# initialize the IMU recording and IMU timecount global,
+#which will be updated inside the IMU control functions
+# but can't be passed back out by the webserver
+IMU_recording = False
+timecount = 0
+IMU_data = []
+# open the file in "append" mode so we don't overwrite prior runs
+filename='IMU_readings.csv'
+filewrite = open(filename, "a")
+
+# set a header to connect data to experiment realtime
+today = time.localtime()
+#print(today) # printing to the REPL/terminal
+# Start the webserver
+wsgiServer.start()
+while True:
+    # Our main loop where we have the server poll for incoming requests
+    try:
+        wsgiServer.update_poll()
+        # background tasks (like reading the IMU)
+        if IMU_recording == True:
+            timecount, row = IMU.IMUrecord(timecount) # read once from the IMU and write to the file
+            #print(timecount)
+            #print(row)
+            IMU_data.append(row)
+
+    except OSError as e:
+        print("Failed to update server, restarting ESP32\n", e)
+        # put something here to actually reset the ESP32
+        continue
