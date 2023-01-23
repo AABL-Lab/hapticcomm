@@ -6,6 +6,10 @@ import os
 import sys
 import subprocess
 from tempfile import gettempdir
+sys.path.append('/home/tufts_user/catkin_ws/src/armpy/src')
+import csv
+import armpy
+
 
 def robotintroduction(robotname="Beep"):
 
@@ -49,15 +53,25 @@ def robotintroduction(robotname="Beep"):
         print("Could not stream audio")
         sys.exit(-1)
 
+def create_trajectory_from_waypoints(filename):
+    # filename should be a CSV file, formatted like waypointgathering.py
+    print("Loading waypoints from", filename)
 
+    filelist = csv.reader(filename)
+    for row in filelist:
+        print(row)
+        
+    print("Moving to start position")
+    armpy.move_to_joint_pose(startposition)
+
+    print("Select the points to use in the trajectory")
+    while point in filelist: 
+        point = str(raw_input())
+        waypointlist = waypointlist + point
+    print("Generating trajectories from waypoints")
+    armpy.plan_waypoints(waypointlist)
+        
+        
 if __name__=="__main__":
-    output = robotintroduction("boop")
-
-    # Play the audio using the platform's default player
-    if sys.platform == "win32":
-        os.startfile(output)
-    else:
-        # The following works on macOS and Linux. (Darwin = mac, xdg-open = linux).
-        opener = "open" if sys.platform == "darwin" else "xdg-open"
-        subprocess.call([opener, output])
-        print(output)
+    print("This is a library file")
+    create_trajectory_from_waypoints("waypoints.csv")
