@@ -3,7 +3,7 @@
 import wifimgr
 from time import sleep
 import machine
-import IMU
+import IMU2 as IMU
 
 try:
   import usocket as socket
@@ -56,14 +56,14 @@ while True:
       led.value(1)
       IMUSTOP = False
       print(IMUSTOP)
-      IMUrecord(timecount, IMUSTOP)
+      IMU.IMUrecord(timecount, IMUSTOP, ParticipantID)
 
     if IMU_stop == 6:
       print('STOPPING IMU RECORDING')
       led.value(0)
       IMUSTOP = True
       print(IMUSTOP)
-      IMUrecord(timecount, IMUSTOP)
+      IMU.IMUrecord(timecount, IMUSTOP, ParticipantID)
       timecount = 0 #reset the timer for next recording
 
 

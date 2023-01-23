@@ -7,6 +7,7 @@ from kinova_msgs.msg import JointAngles
 from kinova_msgs.msg import JointTorque
 import numpy as np
 from csv import DictWriter, writer
+import os
 
 rospy.init_node("waypointgathering")
 
@@ -26,13 +27,14 @@ while morepoints ==True:
     positionname = input()
 
     # put the robot into kinetic teaching mode so the human can manipulate it
-    #FIXME how do I get the arm into KT mode?
+   os.system(rosservice call /j2s7s300_driver/in/start_force_control)
+
     print("Kinetic teaching mode engaged. Move the arm to the location you want to capture and then press enter")
 
     proceed = input()
 
     # get the robot out of KT mode
-    #FIXME how do I get the arm out of KT mode?
+    os.system(rosservice call /j2s7s300_driver/in/stop_force_control)
 
     #get joint configurations at current position
     jointposition = {"j2s7s300_joint_1":J1, "j2s7s300_joint_2":J2, "j2s7s300_joint_3":J3, "j2s7s300_joint_4":J4,\
