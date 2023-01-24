@@ -17,8 +17,24 @@
         # Human-Human 
         # Human-Robot Leader
         # Human-Robot Follower
-    # Card order sequence used (all 6 cards should be used, 
+    # Card order sequence used (all 6 cards should be used) 
     # 3 in H-H and 3 in H-R L and then the same 3 repeated in H-R F)
-    # Demo card 
-    # introduction and wave
-# 
+    # Run demo card/triangle
+         # in H-H mode
+         # in H-R leader mode
+         # in H-R follower mode
+    # robot introduction and wave
+
+
+#Things the robot needs to say during the experiment
+#pre-downloaded using hlpr_speech/AWS_text2speech.py
+
+robotlexicon = {
+                 "greeting": "Hello, My Name Is Boop",
+                 "ready": "OK, I am ready to start",
+                 "waitgrab":" Wait one moment please while I grab the board",
+                 "wait":"Wait one moment, please, I am not yet ready",
+                 "goodbye": "Goodbye! It was nice to meet you"
+}
+
+say(robotlexicon["greeting"]
