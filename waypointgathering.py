@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+# 2023 Kat Allen kat.allen@tufts.edu 
+
 import rospy 
 from sensor_msgs.msg import JointState
 from hlpr_manipulation_utils.manipulator import Gripper
@@ -9,46 +11,48 @@ import numpy as np
 from csv import DictWriter, writer
 import os
 
-rospy.init_node("waypointgathering")
+def waypointgathering(outputfile='waypoints.csv'):
+    # this CSV file should exist with these field names/headers
+    # but will be created by the writer if it does not exist
 
-grip = Gripper()
-arm = ArmMoveIt()
+    rospy.init_node("waypointgathering")
+    grip = Gripper()
+    arm = ArmMoveIt()
+    fieldnames=['positionname', "j2s7s300_joint_1", "j2s7s300_joint_2", "j2s7s300_joint_3", "j2s7s300_joint_4", "j2s7s300_joint_5", "j2s7s300_joint_6", "j2s7s300_joint_7" ]
 
-outputfile = 'waypoints.csv'  # this file should exist and have the headers like this
-headersCSV = ['positionname','joint1 angle','joint2 angle', 'joint3 angle', \
-        'joint4 angle', 'joint5 angle', \
-              'joint6 angle', 'joint7 angle']
+    morepoints = True # set up the loop
 
-morepoints = True
+    while morepoints ==True:
+        # get the name of the position
+        print("Enter the name of the joint position for the waypoint file, e.g. Triangle 1\n")
+        positionname = str(raw_input()) #python2
 
-while morepoints ==True:
-    # get the name of the position
-    print("Enter the name of the joint position for waypoints.csv, e.g. \"Triangle 1\"")
-    positionname = str(raw_input())
+        # put the robot into kinetic teaching mode so the human can manipulate it
+        os.system("rosservice call /j2s7s300_driver/in/start_force_control")  #there is probably a pythonic way to do this
+        print("Kinetic teaching mode engaged. \nMove the arm to the location you want to capture and then press enter\n")
 
-    # put the robot into kinetic teaching mode so the human can manipulate it
-    os.system("rosservice call /j2s7s300_driver/in/start_force_control")
+        proceed = str(raw_input()) #python2
 
-    print("Kinetic teaching mode engaged. Move the arm to the location you want to capture and then press enter")
+        # get the robot out of KT mode
+        os.system("rosservice call /j2s7s300_driver/in/stop_force_control") #there is probably a pythonic way to do this
 
-    proceed = str(raw_input())
+        #get joint configurations at current position
+        message = rospy.wait_for_message("joint_states", JointState)
 
-    # get the robot out of KT mode
-    os.system("rosservice call /j2s7s300_driver/in/stop_force_control")
+        # create a dictionary of the joint positions by parsing the message from ROS
 
-    #get joint configurations at current position
-    message = rospy.wait_for_message("joint_states", JointState)
-    jointposition = {"positionname": positionname, "j2s7s300_joint_1":message.position[5], "j2s7s300_joint_2":message.position[6], "j2s7s300_joint_3":message.position[7], "j2s7s300_joint_4":message.position[8],"j2s7s300_joint_5":message.position[9], "j2s7s300_joint_6":message.position[10], "j2s7s300_joint_7":message.position[11]}
-        writer_object = writer(f_object)
-        writer_object.writerow([jointposition])
-        f_object.close()
-        print("closed the csv. Waypoint", positionname , "saved")
+        writer_object = csv.writer(outputfile, delimiter=',')
+        # write joints 1-7 from the message to the CSV
+        writer_object.writerow(positionname, message.position[5], message.position[6], message.position[7], message.position[8], message.position[9],message.position[10],message.position[11])
+        writer_object.close()
+        print("closed the csv. Waypoint", positionname , "saved\n")
 
-    # check if we should loop
-    print("If you are done entering waypoints (to quitthe program), press q")
-    print("To enter more positions/waypoints, press any other key")
-    loopcheck = raw_input()
-    if loopcheck == "q":
-        morepoints = False # so the loop will quit
-    else: 
-        morepoints = True # loop for more points
+        # check if we should loop
+        print("If you are done entering waypoints (to quit the program), press q\n")
+        print("To enter more positions/waypoints, press any other key\n")
+        loopcheck = raw_input()
+        if loopcheck == "q":
+            morepoints = False # so the loop will quit
+            print("Waypoint Gathering Complete\n")
+        else: 
+            morepoints = True # loop for more points
