@@ -3,14 +3,15 @@
 
 import rospy 
 from sensor_msgs.msg import JointState
-from hlpr_manipulation_utils.manipulator import Gripper
-from hlpr_manipulation_utils.arm_moveit2 import ArmMoveIt
-from kinova_msgs.msg import JointAngles
-from kinova_msgs.srv import StartForceControl, StopForceControl
-from kinova_msgs.msg import JointTorque
+#from hlpr_manipulation_utils.manipulator import Gripper
+#from hlpr_manipulation_utils.arm_moveit2 import ArmMoveIt
+#from kinova_msgs.msg import JointAngles
+#from kinova_msgs.srv import StartForceControl, StopForceControl
+#from kinova_msgs.msg import JointTorque
 import numpy as np
-from csv import DictWriter, writer
+import csv 
 import os
+import armpy
 
 def waypointgathering(outputfile='waypoints.csv'):
     # this CSV file should exist with these field names/headers
@@ -62,3 +63,40 @@ def waypointgathering(outputfile='waypoints.csv'):
             print("Waypoint Gathering Complete\n")
         else: 
             morepoints = True # loop for more points
+
+def waypoints2trajectories(waypointsfile ="waypoints.csv"):
+    fieldnames=['positionname', "j2s7s300_joint_1", "j2s7s300_joint_2", "j2s7s300_joint_3", "j2s7s300_joint_4", "j2s7s300_joint_5", "j2s7s300_joint_6", "j2s7s300_joint_7" ]
+    # load in the waypoints file as a dictionary with position name as a key and a list of the joint positions
+    waypoints = {}
+    with open(waypointsfile, newline='\n') as file:
+        reader_object =csv.DictReader(file, delimiter=',')
+        rownum=0
+        for row in reader_object:
+            rownum += 1
+            #print("row", rownum, row)
+            # use the position name as the key for a dictionary entry where the value is a list of joint positions
+            waypoints[row["positionname"]]= [row["j2s7s300_joint_1"], row["j2s7s300_joint_2"], row["j2s7s300_joint_3"], \
+                        row["j2s7s300_joint_4"],row["j2s7s300_joint_5"],row["j2s7s300_joint_6"],row["j2s7s300_joint_7"]]
+
+    # now present those points to the user to select for inclusion in the trajectory
+    print(waypoints.keys())
+    print("Select waypoints by name for inclusion in the trajectory.\n")
+    print("Enter an empty line when finished")
+    morepoints=True # init
+    pointnames = []
+    while morepoints==True:
+        myinput = input()
+        if myinput=="":
+            morepoints==False
+            print("points complete")
+            print(pointnames)
+        else:
+            if myinput in waypoints.keys(): # check that it's a real waypoint, spelling is correct, etc
+                pointnames.append(input) # this should make a list of the point names as keys into the waypoints dict
+                print(myinput, "added")
+            else:
+                print("That waypoint does not exist in the csv, check your spelling and re-enter")
+    print("Generating a trajectory based on entered points")
+
+
+waypoints2trajectories("waypoints.csv")
