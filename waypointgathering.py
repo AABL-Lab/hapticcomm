@@ -3,14 +3,13 @@
 
 import rospy 
 from sensor_msgs.msg import JointState
-#from hlpr_manipulation_utils.manipulator import Gripper
-#from hlpr_manipulation_utils.arm_moveit2 import ArmMoveIt
-#from kinova_msgs.msg import JointAngles
-#from kinova_msgs.srv import StartForceControl, StopForceControl
-#from kinova_msgs.msg import JointTorque
+from hlpr_manipulation_utils.manipulator import Gripper
+from hlpr_manipulation_utils.arm_moveit2 import ArmMoveIt
+from kinova_msgs.msg import JointAngles
+from kinova_msgs.srv import StartForceControl, StopForceControl
+from kinova_msgs.msg import JointTorque
 import numpy as np
 import csv 
-import os
 import armpy
 
 def waypointgathering(outputfile='waypoints.csv'):
@@ -80,23 +79,34 @@ def waypoints2trajectories(waypointsfile ="waypoints.csv"):
 
     # now present those points to the user to select for inclusion in the trajectory
     print(waypoints.keys())
-    print("Select waypoints by name for inclusion in the trajectory.\n")
+    print("Select waypoints by name, in order, for inclusion in the trajectory.\n")
     print("Enter an empty line when finished")
     morepoints=True # init
     pointnames = []
     while morepoints==True:
-        myinput = input()
-        if myinput=="":
-            morepoints==False
+        input_pointname = input()
+        if input_pointname=="":
+            morepoints=False
+
             print("points complete")
-            print(pointnames)
+            print(*pointnames)
         else:
-            if myinput in waypoints.keys(): # check that it's a real waypoint, spelling is correct, etc
-                pointnames.append(input) # this should make a list of the point names as keys into the waypoints dict
-                print(myinput, "added")
+            if input_pointname in waypoints.keys(): # check that it's a real waypoint, spelling is correct, etc
+                pointnames.append(input_pointname) # this should make a list of the point names as keys into the waypoints dict
+                print(input_pointname, "added")
             else:
                 print("That waypoint does not exist in the csv, check your spelling and re-enter")
-    print("Generating a trajectory based on entered points")
+    if pointnames == []:
+        print("There are no points in the list to generate a trajectory")
+    else: 
+        print("Generating a trajectory based on entered points")
+        trajectory = armpy.plan_joint_waypoints(self, pointnames, starting_config=None)
+    
+    return trajectory
+    # what should I do with the trajectory to save it?
 
+
+# might need this 
+#armpy.move_to_point(jointpositionlist) # move to the joint position, defined as a 7dof list
 
 waypoints2trajectories("waypoints.csv")
