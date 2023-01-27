@@ -1,6 +1,52 @@
 #hapticstudyrunner
 
-#Collect data for syncing with IMU: 
+'''
+Human-Human mode:
+- consent form on qualtrics
+- read study instructions
+- let participants test out triangle card
+
+
+for each card: 1-3
+- start overhead camera
+- synchronize IMU time (optional)
+- start IMU recording
+- do card
+- stop IMU recording
+- stop overhead camera
+- have participants do qualtrics survey question
+
+Human-Robot Follower Mode
+- start overhead camera
+- synchronize IMU time
+- put robot in k-t mode
+                        - make robot talk
+- start IMU recording
+- start ROSBAG recording
+- put robot in K-T mode
+                        - start any visual tracking from robot camera
+- do card
+- stop IMU recording
+- stop ROSBAG recording
+- stop kinesthetic-teaching mode
+- stop overhead camera
+
+Human-Robot Leader Mode
+- start overhead camera
+- synchronize IMU time
+                        - make robot talk
+                        - turn on any visual tracking from robot camera
+- start IMU recording
+- start ROSBAG recording
+- start robot playing selected trajectory/card
+- stop IMU recording
+- stop ROSBAG recording
+                        - stop any visual tracking from robot camera
+- stop overhead camera
+
+'''
+
+
 # current ROS time
 # participant pair ID
 # data file to save IMU data into 
