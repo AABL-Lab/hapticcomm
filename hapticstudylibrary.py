@@ -13,8 +13,10 @@ import csv
 import armpy.arm
 import armpy.gripper
 import waypointgathering
+import pickle
 
 def robotintroduction(text2speak):
+    print("this feature is not working yet")
     pass
 
 
@@ -30,24 +32,84 @@ def create_trajectory_from_waypoints(filename="waypoints.csv"):
         data = [row for row in filelist]
     
     jointnames = ["j2s7s300_joint_1", "j2s7s300_joint_2", "j2s7s300_joint_3", "j2s7s300_joint_4", "j2s7s300_joint_5", "j2s7s300_joint_6", "j2s7s300_joint_7"]    
-    print("Moving to start position")
+#    print("Moving to start position")
 
-    arm.move_to_joint_pose([float(data[0][joint]) for joint in jointnames])
+#    arm.move_to_joint_pose([float(data[0][joint]) for joint in jointnames])
 
     print("Select the points to use in the trajectory")
-    while point in filelist: 
+    positionname_list = []
+    for row in data:
+        positionname_list.append(row['positionname'])
+        
+    print(positionname_list)
+    # loop
+    morepoints = True # init
+    waypointlist = []    
+    while morepoints ==True:
+        # get point name
         point = str(input())
-        waypointlist = waypointlist + point
+        # check if point is in the list data,
+        #  [{'positionname': 'beaker5', 'j2s7s300_joint_1': '3.2092276242139905', 'j2s7s300_joint_2': '3.6030092808958316', 'j2s7s300_joint_3': '7.44210992295606', 'j2s7s300_joint_4': '0.8380117736301355', 'j2s7s300_joint_5': '0.0038275429723377183', 'j2s7s300_joint_6': '2.20180744653298', 'j2s7s300_joint_7': '-0.4488199086394775'}]
 
-    print("Generating trajectories from waypoints")
-    armpy.plan_waypoints(waypointlist)
+        for row in data:
+            if row['positionname']==point:
+                # if it is, add to waypointlist
+                print("point found, adding to trajectory")
+                goodrow = row.copy() # make a copy disconnected from original
+                
+                # position name has to be removed from the dictionary
+                # of joint positions before it is passed to armpy
+                del goodrow['positionname']
+                print("row", row, "\n")
+                print("goodrow", goodrow, "\n")
+                # values need to be converted to floats for armpy
+                for k, v in goodrow.items():
+                    goodrow[k] = float(v)
+                waypointlist.append(goodrow)
+                print("New waypoint", goodrow, "added to trajectory \n")
+                print("waypoints so far", waypointlist,"\n")
+                break # stop looking, we found it
+            else:
+                print("not in this row")
+        print("Get another point? n to generate trajectory,\n any other key to select another point")
+        morepointq = input()
+        if morepointq=="n":
+            morepoints=False
+            print("no more points \n")
+        else:
+            print(positionname_list)
+    
+    print("Generating trajectories from waypoints:\n")
+    print("waypoint list is ", waypointlist, "\n")
+    trajectory = arm.plan_joint_waypoints(waypointlist)
+       
+    # now save the trajectory out to a file so we can load it later
+    print("name this trajectory/pickle filename")
+    trajectoryname = input()
+    with open(trajectoryname+".pkl", "wb") as f:
+        pickle.dump(trajectory, f)
 
+    print("press enter to try out the trajectory")
+    input()
+    for i, plan in enumerate(trajectory):
+        print("executing plan", i) 
+        arm.move_robot(plan)
 
+def execute_motion_plan(planfilename="triangle.pkl"):
+    arm = armpy.arm.Arm()
+    with open (planfilename, "rb") as f:
+        plan = pickle.load(f)
+        
+    print("press enter to try out the loaded trajectory")
+    input()
+    for i, plan in enumerate(plan):
+        print("executing plan", i) 
+        arm.move_robot(plan)    
         
 if __name__=="__main__":
     print("\n\n\n\n")	
     print("This is a library file but here are some things to test\n")
-    print("1: gather waypoints\n 2: make trajectory from waypoints\n 3:speak\n q: exit")
+    print("1: gather waypoints\n 2: make trajectory from waypoints\n 3:speak\n 4: load a saved plan \n q: exit")
     menuchoice = input()	
     if menuchoice =="1": 
         print("Gathering waypoints.  Enter filename (or enter to default to waypoints.csv)")
@@ -70,3 +132,7 @@ if __name__=="__main__":
         print("starting speech. Enter the text to say")
         texttospeak=input()
         robotintroduction(texttospeak)
+    elif menuchoice=="4":
+        print("what is the filename where the trajectory is stored?")
+        planfilename = input()
+        execute_motion_plan(planfilename)
