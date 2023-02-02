@@ -12,13 +12,30 @@ from tempfile import gettempdir
 import csv
 import armpy.arm
 import armpy.gripper
-import waypointgathering
+import waypointgathering  # custom
 import pickle
+# stuff for speech
+import rospy
+import smach
+import smach_ros
+import actionlib
+import hlpr_dialogue_production.msg as dialogue_msgs
+import sys
 
-def robotintroduction(text2speak):
-    print("this feature is not working yet")
-    pass
-
+def robotspeak(text2speak):
+    # modified from test_action_client in hlpr_dialogue_production
+    rospy.init_node("test_action_client", disable_signals=True)
+    client = actionlib.SimpleActionClient("/HLPR_Dialogue",dialogue_msgs.DialogueActAction)
+    rospy.loginfo("waiting for server")
+    client.wait_for_server()
+    rospy.loginfo("got server")
+    s = text2speak
+    print("sending", s, "to the speech server")
+    client.send_goal(dialogue_msgs.DialogueActGoal(text_or_key=s))
+    print("goal sent")
+    client.wait_for_result()
+    print("got result")
+    print(client.get_result())
 
 def create_trajectory_from_waypoints(filename="waypoints.csv"):
     arm = armpy.arm.Arm()
@@ -109,7 +126,7 @@ def execute_motion_plan(planfilename="triangle.pkl"):
 if __name__=="__main__":
     print("\n\n\n\n")	
     print("This is a library file but here are some things to test\n")
-    print("1: gather waypoints\n 2: make trajectory from waypoints\n 3:speak\n 4: load a saved plan \n q: exit")
+    print("1: gather waypoints\n 2: make trajectory from waypoints\n 3:speak\n 4: load a saved plan \n 5: say something \nq: exit")
     menuchoice = input()	
     if menuchoice =="1": 
         print("Gathering waypoints.  Enter filename (or enter to default to waypoints.csv)")
@@ -136,3 +153,7 @@ if __name__=="__main__":
         print("what is the filename where the trajectory is stored?")
         planfilename = input()
         execute_motion_plan(planfilename)
+    elif menuchoice=="5":
+        print("Text to speak?\n")
+        speaktext = input()
+        robotspeak(speaktext)
