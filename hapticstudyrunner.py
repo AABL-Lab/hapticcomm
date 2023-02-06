@@ -1,12 +1,17 @@
 #hapticstudyrunner
+import hapticstudylibrary as hslibrary
 
 '''
 Human-Human mode:
 - consent form on qualtrics
 - read study instructions
 - let participants test out triangle card
+'''
 
 
+
+
+'''
 for each card: 1-3
 - start overhead camera
 - synchronize IMU time (optional)
@@ -21,7 +26,12 @@ Human-Robot Follower Mode
 - synchronize IMU time
 - put robot in k-t mode
                         - make robot talk
-- start IMU recording
+'''
+
+robotspeak(speaktext)
+
+'''
+  - start IMU recording
 - start ROSBAG recording
 - put robot in K-T mode
                         - start any visual tracking from robot camera
@@ -72,15 +82,16 @@ Human-Robot Leader Mode
     # robot introduction and wave
 
 
-#Things the robot needs to say during the experiment
-#pre-downloaded using hlpr_speech/AWS_text2speech.py
+print("Welcome to Haptic Study Runner.\n")
+print("Choose a mode:\n")
+print("H: Human-Human\n")
+print("RF: Human Leader, Robot Follower\n")
+print("RL: Human Follower, Robot Leader\n")
+print("T:  Testing Mode\n")
+choice = input()
 
-robotlexicon = {
-                 "greeting": "Hello, My Name Is Boop",
-                 "ready": "OK, I am ready to start",
-                 "waitgrab":" Wait one moment please while I grab the board",
-                 "wait":"Wait one moment, please, I am not yet ready",
-                 "goodbye": "Goodbye! It was nice to meet you"
-}
-
-say(robotlexicon["greeting"]
+if choice =="H":
+    IMUdefaultIP = 0.0.
+    print("Enter the IMU IP address. Default is ", IMUdefaultIP)
+    print("Ready to start the IMU at", IMUIP)
+    hslibrary.startIMU(IMUIP)

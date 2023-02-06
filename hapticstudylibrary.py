@@ -37,6 +37,20 @@ def robotspeak(text2speak):
     print("got result")
     print(client.get_result())
 
+def predownload_speech():
+    robotlexicon = {
+                 "greeting": "Hello, My Name Is Boop",
+                 "ready": "OK, I am ready to start",
+                 "waitgrab":" Wait one moment please while I grab the board",
+                 "wait":"Wait one moment, please, I am not yet ready",
+                 "goodbye": "Goodbye! It was nice to meet you"
+    }
+    # downloadable with 
+    # AWStext2speech.py in hlpr_dialogue_production. 
+    # not sure how to load these back in with it. FIXME
+
+
+    
 def create_trajectory_from_waypoints(filename="waypoints.csv"):
     arm = armpy.arm.Arm()
 
@@ -117,11 +131,14 @@ def execute_motion_plan(planfilename="triangle.pkl"):
     with open (planfilename, "rb") as f:
         plan = pickle.load(f)
         
-    print("press enter to try out the loaded trajectory")
+    print("press enter to run the loaded trajectory, " planfilename)
     input()
     for i, plan in enumerate(plan):
         print("executing plan", i) 
         arm.move_robot(plan)    
+
+def startIMU(IP):
+    # send a
         
 if __name__=="__main__":
     print("\n\n\n\n")	
