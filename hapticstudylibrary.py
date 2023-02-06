@@ -1,4 +1,7 @@
 #hapticstudylibrary.py
+# Kat Allen 2023 
+# kat.allen@tufts.edu
+
 from boto3 import Session
 from botocore.exceptions import BotoCoreError, ClientError
 from contextlib import closing
@@ -6,72 +9,168 @@ import os
 import sys
 import subprocess
 from tempfile import gettempdir
-sys.path.append('/home/tufts_user/catkin_ws/src/armpy/src')
 import csv
-import armpy
+import armpy.arm
+import armpy.gripper
+import waypointgathering  # custom
+import pickle
+# stuff for speech
+import rospy
+import smach
+import smach_ros
+import actionlib
+import hlpr_dialogue_production.msg as dialogue_msgs
+import sys
+
+def robotspeak(text2speak):
+    # modified from test_action_client in hlpr_dialogue_production
+    rospy.init_node("test_action_client", disable_signals=True)
+    client = actionlib.SimpleActionClient("/HLPR_Dialogue",dialogue_msgs.DialogueActAction)
+    rospy.loginfo("waiting for server")
+    client.wait_for_server()
+    rospy.loginfo("got server")
+    s = text2speak
+    print("sending", s, "to the speech server")
+    client.send_goal(dialogue_msgs.DialogueActGoal(text_or_key=s))
+    print("goal sent")
+    client.wait_for_result()
+    print("got result")
+    print(client.get_result())
+
+def predownload_speech():
+    robotlexicon = {
+                 "greeting": "Hello, My Name Is Boop",
+                 "ready": "OK, I am ready to start",
+                 "waitgrab":" Wait one moment please while I grab the board",
+                 "wait":"Wait one moment, please, I am not yet ready",
+                 "goodbye": "Goodbye! It was nice to meet you"
+    }
+    # downloadable with 
+    # AWStext2speech.py in hlpr_dialogue_production. 
+    # not sure how to load these back in with it. FIXME
 
 
-def robotintroduction(robotname="Beep"):
+    
+def create_trajectory_from_waypoints(filename="waypoints.csv"):
+    arm = armpy.arm.Arm()
 
-
-    # Create a client using the credentials and region defined in the [default]
-    # section of the AWS credentials file (~/.aws/credentials).
-    session = Session(profile_name="default")
-    polly = session.client("polly")
-
-    introtext = "Hello my name is" + robotname 
-    try:
-        # Request speech synthesis
-        response = polly.synthesize_speech(Text=introtext, OutputFormat="mp3",
-                                            VoiceId="Justin") # young-sounding voice
-    except (BotoCoreError, ClientError) as error:
-        # The service returned an error, exit gracefully
-        print(error)
-        sys.exit(-1)
-
-    # Access the audio stream from the response
-    if "AudioStream" in response:
-        # Note: Closing the stream is important because the service throttles on the
-        # number of parallel connections. Here we are using contextlib.closing to
-        # ensure the close method of the stream object will be called automatically
-        # at the end of the with statement's scope.
-        with closing(response["AudioStream"]) as stream:
-                output = os.path.join(gettempdir(), "speech.mp3")
-
-        try:
-            # Open a file for writing the output as a binary stream
-                with open(output, "wb") as file:
-                    file.write(stream.read())
-                print("wrote audio output to ", output)
-        except IOError as error:
-            # Could not write to file, exit gracefully
-            print(error)
-            sys.exit(-1)
-        return output
-    else:
-        # The response didn't contain audio data, exit gracefully
-        print("Could not stream audio")
-        sys.exit(-1)
-
-def create_trajectory_from_waypoints(filename):
     # filename should be a CSV file, formatted like waypointgathering.py
     print("Loading waypoints from", filename)
 
-    filelist = csv.reader(filename)
-    for row in filelist:
-        print(row)
-        
-    print("Moving to start position")
-    armpy.move_to_joint_pose(startposition)
+    
+    with open(filename, 'r') as f:
+        filelist = csv.DictReader(f)    
+        data = [row for row in filelist]
+    
+    jointnames = ["j2s7s300_joint_1", "j2s7s300_joint_2", "j2s7s300_joint_3", "j2s7s300_joint_4", "j2s7s300_joint_5", "j2s7s300_joint_6", "j2s7s300_joint_7"]    
+#    print("Moving to start position")
+
+#    arm.move_to_joint_pose([float(data[0][joint]) for joint in jointnames])
 
     print("Select the points to use in the trajectory")
-    while point in filelist: 
-        point = str(raw_input())
-        waypointlist = waypointlist + point
-    print("Generating trajectories from waypoints")
-    armpy.plan_waypoints(waypointlist)
+    positionname_list = []
+    for row in data:
+        positionname_list.append(row['positionname'])
         
+    print(positionname_list)
+    # loop
+    morepoints = True # init
+    waypointlist = []    
+    while morepoints ==True:
+        # get point name
+        point = str(input())
+        # check if point is in the list data,
+        #  [{'positionname': 'beaker5', 'j2s7s300_joint_1': '3.2092276242139905', 'j2s7s300_joint_2': '3.6030092808958316', 'j2s7s300_joint_3': '7.44210992295606', 'j2s7s300_joint_4': '0.8380117736301355', 'j2s7s300_joint_5': '0.0038275429723377183', 'j2s7s300_joint_6': '2.20180744653298', 'j2s7s300_joint_7': '-0.4488199086394775'}]
+
+        for row in data:
+            if row['positionname']==point:
+                # if it is, add to waypointlist
+                print("point found, adding to trajectory")
+                goodrow = row.copy() # make a copy disconnected from original
+                
+                # position name has to be removed from the dictionary
+                # of joint positions before it is passed to armpy
+                del goodrow['positionname']
+                print("row", row, "\n")
+                print("goodrow", goodrow, "\n")
+                # values need to be converted to floats for armpy
+                for k, v in goodrow.items():
+                    goodrow[k] = float(v)
+                waypointlist.append(goodrow)
+                print("New waypoint", goodrow, "added to trajectory \n")
+                print("waypoints so far", waypointlist,"\n")
+                break # stop looking, we found it
+            else:
+                print("not in this row")
+        print("Get another point? n to generate trajectory,\n any other key to select another point")
+        morepointq = input()
+        if morepointq=="n":
+            morepoints=False
+            print("no more points \n")
+        else:
+            print(positionname_list)
+    
+    print("Generating trajectories from waypoints:\n")
+    print("waypoint list is ", waypointlist, "\n")
+    trajectory = arm.plan_joint_waypoints(waypointlist)
+       
+    # now save the trajectory out to a file so we can load it later
+    print("name this trajectory/pickle filename")
+    trajectoryname = input()
+    with open(trajectoryname+".pkl", "wb") as f:
+        pickle.dump(trajectory, f)
+
+    print("press enter to try out the trajectory")
+    input()
+    for i, plan in enumerate(trajectory):
+        print("executing plan", i) 
+        arm.move_robot(plan)
+
+def execute_motion_plan(planfilename="triangle.pkl"):
+    arm = armpy.arm.Arm()
+    with open (planfilename, "rb") as f:
+        plan = pickle.load(f)
+        
+    print("press enter to run the loaded trajectory, " planfilename)
+    input()
+    for i, plan in enumerate(plan):
+        print("executing plan", i) 
+        arm.move_robot(plan)    
+
+def startIMU(IP):
+    # send a
         
 if __name__=="__main__":
-    print("This is a library file")
-    create_trajectory_from_waypoints("waypoints.csv")
+    print("\n\n\n\n")	
+    print("This is a library file but here are some things to test\n")
+    print("1: gather waypoints\n 2: make trajectory from waypoints\n 3:speak\n 4: load a saved plan \n 5: say something \nq: exit")
+    menuchoice = input()	
+    if menuchoice =="1": 
+        print("Gathering waypoints.  Enter filename (or enter to default to waypoints.csv)")
+        filename = input()
+        if len(filename)==0:
+	        waypointgathering.waypointgathering()
+        else:
+                waypointgathering.waypointgathering(filename)
+    elif menuchoice =="2":
+        print("making trajectory from waypoints. Enter filename or enter for default (waypoints.csv)")
+        filename = input()
+        if len(filename)==0:
+                create_trajectory_from_waypoints()
+        else:        
+                create_trajectory_from_waypoints(filename)
+    elif menuchoice =="q":
+        print("exiting")
+        exit
+    elif menuchoice=="3":
+        print("starting speech. Enter the text to say")
+        texttospeak=input()
+        robotintroduction(texttospeak)
+    elif menuchoice=="4":
+        print("what is the filename where the trajectory is stored?")
+        planfilename = input()
+        execute_motion_plan(planfilename)
+    elif menuchoice=="5":
+        print("Text to speak?\n")
+        speaktext = input()
+        robotspeak(speaktext)
