@@ -1,8 +1,10 @@
 # Kat Allen kat.allen@tufts.edu
 # Circuitpython for controlling an RP2040 Nano Connect IMU via web browser/wifi
 
-'''Adapted from multiple Circuitpython examples including
-https://learn.adafruit.com/circuitpython-on-the-arduino-nano-rp2040-connect/wifi'''
+'''Thank you to
+https://learn.adafruit.com/circuitpython-on-the-arduino-nano-rp2040-connect/wifi
+and the Adafruit Discord community!
+'''
 
 import board
 import busio
@@ -227,7 +229,7 @@ def IMU_on(environ): # starts the IMU recording
     print("current date/time is ", stringdate)
     with open(filename, "a") as fp:
         # print the header into the file
-        fp.write(stringdate)
+        fp.write(stringdate+"\n")
         fp.flush()
     return web_app.serve_file("static/IMUon.html")
 
@@ -237,11 +239,11 @@ def IMU_off(environ):
     status_light.value = False
     print("IMU stopped")
     with open(filename, "a") as fp:
-        for row in IMU_data: # print each row in the IMU data to the file
-            print(row, "writing to file", filename)
-            fp.write(str(row))
+        for row in IMU_data: # send each row in the IMU data to the file
+            #print(row, "writing to file", filename)
+            fp.write(str(row)+"\n")
             fp.flush()
-        fp.write("end of logging")
+        fp.write("end of logging\n")
         fp.flush()
     print("Wrote to file")
     return web_app.serve_file("static/IMUoff.html")
