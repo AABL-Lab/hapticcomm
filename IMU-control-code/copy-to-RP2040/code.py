@@ -20,6 +20,7 @@ import os
 import rtc
 import time
 import struct
+import tufts_ntp
 
 # LED setup for onboard LED
 status_light = DigitalInOut(board.LED)
@@ -81,7 +82,8 @@ if secrets["ssid"]!="tufts_eecs":
 
     while not try_set_time(esp, TZ_OFFSET):
         time.sleep(0.01)
-
+else:
+    tufts_ntp.set_ntp_time(esp)
 # manually set the time
 #timenow =  time.struct_time((2023, 2, 7, 13, 43, 15, 0, -1, -1))
 r = rtc.RTC()
@@ -307,7 +309,7 @@ while True:
         # background tasks (like reading the IMU)
         if IMU_recording == True:
             timecount, row = IMU.IMUrecord(timecount) # read once from the IMU and write to the file
-            #print(timecount)
+            print(timecount)
             #print(row)
             IMU_data.append(row)
 
