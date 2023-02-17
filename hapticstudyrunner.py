@@ -6,29 +6,37 @@ Human-Human mode:
 - consent form on qualtrics
 - read study instructions
 - let participants test out triangle card
-'''
-
-
-
-
-'''
+- Start camera in study area 1 on jigglypuff
 for each card: 1-3
-- start overhead camera
+- start overhead camera on jigglypuff
 - synchronize IMU time (optional)
 - start IMU recording
 - do card
 - stop IMU recording
 - stop overhead camera
 - have participants do qualtrics survey question
+'''
+# export ROS_MASTER_URI=http://10.42.42.24:11311
+rosbag record
 
+'''
 Human-Robot Follower Mode
 - start overhead camera
+- start machine1 on robot tufts
 - synchronize IMU time
 - put robot in k-t mode
-                        - make robot talk
+- make robot talk
 '''
 
-robotspeak(speaktext)
+hslibrary.execute_motion_plan(wave)
+speaktext = "Hello, my name is Beep"
+hslibrary.robotspeak(speaktext)
+
+rosrun usb_cam usb_cam_node # might need to do this for each camera
+# may need to tell it to run with two different names
+# figure out how this works and how to remap the topic to run both at once
+# can check that it works with rviz
+rosbag <all the topics> 
 
 '''
   - start IMU recording
