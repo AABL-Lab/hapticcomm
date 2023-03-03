@@ -131,7 +131,7 @@ def execute_motion_plan(planfilename="triangle.pkl"):
     with open (planfilename, "rb") as f:
         plan = pickle.load(f)
         
-    print("press enter to run the loaded trajectory, " planfilename)
+    print("press enter to run the loaded trajectory", planfilename)
     input()
     for i, plan in enumerate(plan):
         print("executing plan", i) 
