@@ -3,8 +3,6 @@
 
 import rospy 
 from sensor_msgs.msg import JointState
-from hlpr_manipulation_utils.manipulator import Gripper
-from hlpr_manipulation_utils.arm_moveit2 import ArmMoveIt
 from kinova_msgs.msg import JointAngles
 from kinova_msgs.srv import StartForceControl, StopForceControl
 from kinova_msgs.msg import JointTorque

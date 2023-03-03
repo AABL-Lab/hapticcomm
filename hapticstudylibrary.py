@@ -137,8 +137,7 @@ def execute_motion_plan(planfilename="triangle.pkl"):
         print("executing plan", i) 
         arm.move_robot(plan)    
 
-def startIMU(IP):
-    # send a
+
         
 if __name__=="__main__":
     print("\n\n\n\n")	
