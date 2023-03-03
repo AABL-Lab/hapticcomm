@@ -1,5 +1,3 @@
-
-requirements/*
-lib/*
 secrets.py
+IMU-processing-code/copy-to-RP2040/secrets.py
 *.mpy
