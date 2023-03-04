@@ -1,105 +1,102 @@
 #hapticstudyrunner
 import hapticstudylibrary as hslibrary
+import armpy.arm
+rospy.init_node("hapticstudyrunner")
+grip = armpy.gripper.Gripper()
+arm = armpy.arm.Arm()
+start_force_control=rospy.ServiceProxy("/j2s7s300_driver/in/start_force_control", kinova_msgs.srv.Start)
+stop_force_control=rospy.ServiceProxy("/j2s7s300_driver/in/stop_force_control", kinova_msgs.srv.Stop)
 
-'''
-Human-Human mode:
-- consent form on qualtrics
-- read study instructions
-- let participants test out triangle card
-- Start camera in study area 1 on jigglypuff
-for each card: 1-3
-- start overhead camera on jigglypuff
-- synchronize IMU time (optional)
-- start IMU recording
-- do card
-- stop IMU recording
-- stop overhead camera
-- have participants do qualtrics survey question
-'''
-# export ROS_MASTER_URI=http://10.42.42.24:11311
-rosbag record
+def greeting():
+    # greet the participants and wave
+    hslibrary.robotspeech("Hello, I am Beep. I will be your collaborator today.") 
+    hslibrary.robotspeech("I am a robot that can help you with your tray-moving tasks.")
+    hslibrary.execute_motion_plan(wave_hello.pkl)
 
-'''
-Human-Robot Follower Mode
-- start overhead camera
-- start machine1 on robot tufts
-- synchronize IMU time
-- put robot in k-t mode
-- make robot talk
-'''
+def graspobject(location):
+    # move to the object location
+    arm.move_robot(location)
+    # grasp the object
+    grip.open()
+    input()
+    grip.close()
 
-hslibrary.execute_motion_plan(wave)
-speaktext = "Hello, my name is Beep"
-hslibrary.robotspeak(speaktext)
+def demo(trajectorystartlocation, demotrajectoryfilename):
+    graspobject(trajectorystartlocation)
+    wait(5) # it would be great if this were a verbal command
+    hslibrary.execute_motion_plan(demotrajectoryfilename)
 
-rosrun usb_cam usb_cam_node # might need to do this for each camera
-# may need to tell it to run with two different names
-# figure out how this works and how to remap the topic to run both at once
-# can check that it works with rviz
-rosbag <all the topics> 
+def robot_leader_sequence()
+    print("Robot Leader mode")
+    print("Get the IP address of the IMU and open it in a web browser")
+    print("press enter when done")
+    input()
+    print("Manually start the overhead camera")
+    print("press enter when done")
+    input()
+    cardcounter = 0
+    while cardcounter < 3:
+        print("Enter the card number to start the motion plan.")
+        cardchoice = input()
+        if cardchoice == "1":
+            trajectoryfilename = "trajectorypickles/doubleM.pkl"
+        if cardchoice == "2":
+            trajectoryfilename = "trajectorypickles/pentagon.pkl"
+        if cardchoice == "3":
+            trajectoryfilename = "trajectorypickles/splittriangle.pkl"
+        if cardchoice == "4":
+            trajectoryfilename = "trajectorypickles/jetski.pkl"
+        if cardchoice == "5":
+            trajectoryfilename = "trajectorypickles/vee.pkl"
+        if cardchoice == "6":
+            trajectoryfilename = "trajectorypickles/beaker.pkl"
+        else:        
+            print("Invalid card choice.",str(cardchoice), "Please try again.")
+    
+        # start rosbag recording
 
-'''
-  - start IMU recording
-- start ROSBAG recording
-- put robot in K-T mode
-                        - start any visual tracking from robot camera
-- do card
-- stop IMU recording
-- stop ROSBAG recording
-- stop kinesthetic-teaching mode
-- stop overhead camera
-
-Human-Robot Leader Mode
-- start overhead camera
-- synchronize IMU time
-                        - make robot talk
-                        - turn on any visual tracking from robot camera
-- start IMU recording
-- start ROSBAG recording
-- start robot playing selected trajectory/card
-- stop IMU recording
-- stop ROSBAG recording
-                        - stop any visual tracking from robot camera
-- stop overhead camera
-
-'''
+        # Beep says that they are ready to start
+        hslibrary.robotspeech("I am ready to start.")
+        # start the trajectory running
+        print("Press enter to start the trajectory.")
+        input()
+        hslibrary.execute_motion_plan(trajectoryfilename)
+        print("trajectory complete")
+        # stop rosbag recording
+        cardcounter = cardcounter + 1
+        print("Stop the IMU recording and press enter to continue.")
+        input()
+    
+    # when all 3 cards are done, say goodbye
+    hslibrary.robotspeech("Thank you for your help today. Goodbye.")
 
 
-# current ROS time
-# participant pair ID
-# data file to save IMU data into 
-
-#Things to do simultaneously:
-    # Start IMU and pass data about time and participants
-    # If we are in robot mode, start ROSbag for joint angles and torques
-    # If we are in robot-leader mode, select the trajectory, move to the start location
-        # and prep to start on confirmation
-    # If we are in robot-follower mode, start kinesthetic teaching mode
-
-# Main control page options
-    # Mode: 
-        # Human-Human 
-        # Human-Robot Leader
-        # Human-Robot Follower
-    # Card order sequence used (all 6 cards should be used) 
-    # 3 in H-H and 3 in H-R L and then the same 3 repeated in H-R F)
-    # Run demo card/triangle
-         # in H-H mode
-         # in H-R leader mode
-         # in H-R follower mode
-    # robot introduction and wave
+def robot_follower_sequence():
+    print("Robot Follower mode")
+    print("Get the IP address of the IMU and open it in a web browser")
+    print("Manually start the overhead camera")
+    print("press enter when done")
+    input()
+    # Beep says that they are ready to start
+    hslibrary.robotspeech("I am ready to start.")
+    # start the trajectory running
+    print("Press enter to start force-control mode.")
 
 
 print("Welcome to Haptic Study Runner.\n")
 print("Choose a mode:\n")
-print("H: Human-Human\n")
-print("RF: Human Leader, Robot Follower\n")
-print("RL: Human Follower, Robot Leader\n")
+print("1: Full Study sequence\n")
+print("RL or 2: Human Follower, Robot Leader\n")
+print("RF or 3: Human Leader, Robot Follower\n")
 print("T:  Testing Mode\n")
 choice = input()
 
-if choice =="H":
-    IMUdefaultIP = 0.0.
-    print("Enter the IMU IP address. Default is ", IMUdefaultIP)
-    print("Ready to start the IMU at", IMUIP)
-    hslibrary.startIMU(IMUIP)
+if choice == "1":
+
+ 
+if choice == "RL" or choice == "rl" or choice == "2":
+    robot_leader_sequence()
+
+if choice == "RF" or choice == "rf" or choice == "3":
+    robot_follower_sequence()
+

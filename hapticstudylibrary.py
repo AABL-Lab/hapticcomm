@@ -63,9 +63,6 @@ def create_trajectory_from_waypoints(filename="waypoints.csv"):
         data = [row for row in filelist]
     
     jointnames = ["j2s7s300_joint_1", "j2s7s300_joint_2", "j2s7s300_joint_3", "j2s7s300_joint_4", "j2s7s300_joint_5", "j2s7s300_joint_6", "j2s7s300_joint_7"]    
-#    print("Moving to start position")
-
-#    arm.move_to_joint_pose([float(data[0][joint]) for joint in jointnames])
 
     print("Select the points to use in the trajectory")
     positionname_list = []
@@ -117,7 +114,7 @@ def create_trajectory_from_waypoints(filename="waypoints.csv"):
     # now save the trajectory out to a file so we can load it later
     print("name this trajectory/pickle filename")
     trajectoryname = input()
-    with open(trajectoryname+".pkl", "wb") as f:
+    with open("trajectorypickles/"+trajectoryname+".pkl", "wb") as f:
         pickle.dump(trajectory, f)
 
     print("press enter to try out the trajectory")
@@ -137,7 +134,10 @@ def execute_motion_plan(planfilename="triangle.pkl"):
         print("executing plan", i) 
         arm.move_robot(plan)    
 
+<<<<<<< Updated upstream
 
+=======
+>>>>>>> Stashed changes
         
 if __name__=="__main__":
     print("\n\n\n\n")	
@@ -166,7 +166,7 @@ if __name__=="__main__":
         texttospeak=input()
         robotintroduction(texttospeak)
     elif menuchoice=="4":
-        print("what is the filename where the trajectory is stored?")
+        print("what is the path/filename where the trajectory is stored?")
         planfilename = input()
         execute_motion_plan(planfilename)
     elif menuchoice=="5":
