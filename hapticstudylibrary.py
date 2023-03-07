@@ -134,10 +134,6 @@ def execute_motion_plan(planfilename="triangle.pkl"):
         print("executing plan", i) 
         arm.move_robot(plan)    
 
-<<<<<<< Updated upstream
-
-=======
->>>>>>> Stashed changes
         
 if __name__=="__main__":
     print("\n\n\n\n")	
