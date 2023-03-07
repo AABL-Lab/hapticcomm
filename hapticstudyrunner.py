@@ -1,11 +1,27 @@
+# notes
+#https://docs.python-requests.org/en/latest/
+
+
 #hapticstudyrunner
 import hapticstudylibrary as hslibrary
 import armpy.arm
+
 rospy.init_node("hapticstudyrunner")
 grip = armpy.gripper.Gripper()
 arm = armpy.arm.Arm()
 start_force_control=rospy.ServiceProxy("/j2s7s300_driver/in/start_force_control", kinova_msgs.srv.Start)
 stop_force_control=rospy.ServiceProxy("/j2s7s300_driver/in/stop_force_control", kinova_msgs.srv.Stop)
+
+# set up the configuration variables for the IMU
+imuconfig = {"ipaddr": "10.whatever"}
+
+# set up the configuration variables for ROSBag
+rosconfig = {
+    "filename":"",
+    "log_dir":"",
+    "topics":[]
+}
+
 
 def greeting():
     # greet the participants and wave
@@ -26,11 +42,25 @@ def demo(trajectorystartlocation, demotrajectoryfilename):
     wait(5) # it would be great if this were a verbal command
     hslibrary.execute_motion_plan(demotrajectoryfilename)
 
+class IMUConnect:
+    def __init__(self, ipaddr):
+        self._ipaddr=ipaddr
+    @property # this means we can retrieve ipaddr like a variable    
+    def ipaddr(self):# can't be changed from outside the class
+        return self._ipaddr 
+    def start(self):
+        # put some stuff from requests here
+    def stop(self):
+        # more stuff from requests
+
+    def __enter__(self):
+        self.start()
+    def __exit__(self, *args):
+        self.stop()
+        
+        
 def robot_leader_sequence()
     print("Robot Leader mode")
-    print("Get the IP address of the IMU and open it in a web browser")
-    print("press enter when done")
-    input()
     print("Manually start the overhead camera")
     print("press enter when done")
     input()
@@ -52,15 +82,19 @@ def robot_leader_sequence()
             trajectoryfilename = "trajectorypickles/beaker.pkl"
         else:        
             print("Invalid card choice.",str(cardchoice), "Please try again.")
-    
-        # start rosbag recording
 
         # Beep says that they are ready to start
         hslibrary.robotspeech("I am ready to start.")
         # start the trajectory running
         print("Press enter to start the trajectory.")
         input()
-        hslibrary.execute_motion_plan(trajectoryfilename)
+    
+        print("starting the IMU and ROSBag")
+        with IMUConnect(**imuconfig) as imu:    
+            # start rosbag recording
+            with RosbagRecorder(**rosbagconfig):
+                hslibrary.execute_motion_plan(trajectoryfilename)
+
         print("trajectory complete")
         # stop rosbag recording
         cardcounter = cardcounter + 1
@@ -74,6 +108,7 @@ def robot_leader_sequence()
 def robot_follower_sequence():
     print("Robot Follower mode")
     print("Get the IP address of the IMU and open it in a web browser")
+    
     print("Manually start the overhead camera")
     print("press enter when done")
     input()
