@@ -1,10 +1,10 @@
 # notes
 #https://docs.python-requests.org/en/latest/
 
-
 #hapticstudyrunner
 import hapticstudylibrary as hslibrary
 import armpy.arm
+import requests
 
 rospy.init_node("hapticstudyrunner")
 grip = armpy.gripper.Gripper()
@@ -49,7 +49,9 @@ class IMUConnect:
     def ipaddr(self):# can't be changed from outside the class
         return self._ipaddr 
     def start(self):
-        # put some stuff from requests here
+        # get the page at the IMU's IP address
+        r = requests.get('http://'+str(ipaddr)+'/IMU_on')
+        IMU_on
     def stop(self):
         # more stuff from requests
 

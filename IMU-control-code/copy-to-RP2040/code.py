@@ -95,12 +95,6 @@ print("It is currently {}/{}/{} at {}:{}:{} UTC".format(
     now.tm_hour,now.tm_min, now.tm_sec))
 
 
-# a function to serve files
-def serve_file(self, file_path, directory=None):
-    status = "200 OK"
-    headers = [("Content-Type", self._get_content_type(file_path))]
-
-    full_path = file_path if not directory else directory + file_path
 
 class SimpleWSGIApplication:
     """
@@ -227,7 +221,7 @@ def IMU_on(environ): # starts the IMU recording
     status_light.value = True
     print("IMU recording")
     datenow = rtc.RTC().datetime
-    stringdate = "UTCtime:"+str(datenow[0])+","+str(datenow[1])+","+str(datenow[2])+","+str(datenow[3])+":"+str(datenow[4])
+    stringdate = "UTCtime:"+str(datenow[0])+","+str(datenow[1])+","+str(datenow[2])+","+str(datenow[3])+":"+str(datenow[4])+":"+str(datenow[5])
     print("current date/time is ", stringdate)
     with open(filename, "a") as fp:
         # print the header into the file
@@ -250,6 +244,9 @@ def IMU_off(environ):
     print("Wrote to file")
     return web_app.serve_file("static/IMUoff.html")
 
+def preview_last_data(environ):
+    print("sending", filename, "to webserver")
+    return web_app.serve_file(filename)
 
 
 
@@ -282,6 +279,7 @@ web_app = SimpleWSGIApplication(static_dir=static)
 web_app.on("GET", "/IMU_on", IMU_on)
 web_app.on("GET", "/IMU_off", IMU_off)
 #web_app.on("POST", "/ajax/ledcolor", led_color)
+web_app.on("GET","/preview_last_data", preview_last_data)
 
 # Here we setup our server, passing in our web_app as the application
 server.set_interface(esp)
@@ -308,10 +306,16 @@ while True:
         wsgiServer.update_poll()
         # background tasks (like reading the IMU)
         if IMU_recording == True:
-            timecount, row = IMU.IMUrecord(timecount) # read once from the IMU and write to the file
-            print(timecount)
-            #print(row)
-            IMU_data.append(row)
+            if timecount < 200:
+                try:
+                    timecount, row = IMU.IMUrecord(timecount) # read once from the IMU and write to the file
+                    print(timecount)
+                #print(row)
+                except:
+                    row = "error"
+                IMU_data.append(row)
+            else: # running out of memory
+                IMU_off(argument) # what is the argument? This currently crashes
 
     except OSError as e:
         print("Failed to update server, restarting ESP32\n", e)
