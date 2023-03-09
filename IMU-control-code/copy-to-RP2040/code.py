@@ -242,6 +242,7 @@ def IMU_off(environ):
         fp.write("end of logging\n")
         fp.flush()
     print("Wrote to file")
+    timecount = 0 # reset the global counter
     return web_app.serve_file("static/IMUoff.html")
 
 def preview_last_data(environ):
