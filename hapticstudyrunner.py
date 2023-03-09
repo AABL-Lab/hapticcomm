@@ -19,7 +19,7 @@ imuconfig = {"ipaddr": "10.whatever"}
 rosconfig = {
     "filename":"",
     "log_dir":"",
-    "topics":[]
+    "topics":[/tf, /joint_states, /gripper/joint_states, /execute_trajectory/status]
 }
 
 
