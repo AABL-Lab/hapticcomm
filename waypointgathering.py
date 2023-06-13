@@ -4,7 +4,6 @@
 import rospy 
 from sensor_msgs.msg import JointState
 from kinova_msgs.msg import JointAngles
-from kinova_msgs.srv import StartForceControl, StopForceControl
 from kinova_msgs.msg import JointTorque
 import numpy as np
 import csv 
@@ -19,8 +18,8 @@ def waypointgathering(outputfile='waypoints.csv'):
     grip = armpy.gripper.Gripper()
     arm = armpy.arm.Arm()
     fieldnames=['positionname', "j2s7s300_joint_1", "j2s7s300_joint_2", "j2s7s300_joint_3", "j2s7s300_joint_4", "j2s7s300_joint_5", "j2s7s300_joint_6", "j2s7s300_joint_7" ]
-    start_force_control=rospy.ServiceProxy("/j2s7s300_driver/in/start_force_control", kinova_msgs.srv.Start)
-    stop_force_control=rospy.ServiceProxy("/j2s7s300_driver/in/stop_force_control", kinova_msgs.srv.Stop)
+    start_force_control=arm.start_force_control
+    stop_force_control= arm.stop_force_control
     
     morepoints = True # set up the loop
     all_points=[]
@@ -115,5 +114,5 @@ def waypoints2trajectories(waypointsfile ="waypoints.csv"):
 if __name__=="__main__":
 # might need this 
 	#armpy.move_to_point(jointpositionlist) # move to the joint position, defined as a 7dof list
-	print("Gathering Waypoints")
+	print("Gather trajectories using hapticstudylibrary.py")
 	#waypoints2trajectories("waypoints.csv")

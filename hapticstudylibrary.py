@@ -21,6 +21,7 @@ import smach_ros
 import actionlib
 import hlpr_dialogue_production.msg as dialogue_msgs
 import sys
+arm = armpy.arm.Arm()
 
 def robotspeak(text2speak):
     # modified from test_action_client in hlpr_dialogue_production
@@ -37,6 +38,9 @@ def robotspeak(text2speak):
     print("got result")
     print(client.get_result())
 
+
+
+
 def predownload_speech():
     robotlexicon = {
                  "greeting": "Hello, My Name Is Boop",
@@ -52,7 +56,7 @@ def predownload_speech():
 
     
 def create_trajectory_from_waypoints(filename="waypoints.csv"):
-    arm = armpy.arm.Arm()
+
 
     # filename should be a CSV file, formatted like waypointgathering.py
     print("Loading waypoints from", filename)
@@ -138,7 +142,7 @@ def execute_motion_plan(planfilename="triangle.pkl"):
 if __name__=="__main__":
     print("\n\n\n\n")	
     print("This is a library file but here are some things to test\n")
-    print("1: gather waypoints\n 2: make trajectory from waypoints\n 3:speak\n 4: load a saved plan \n 5: say something \nq: exit")
+    print("1: gather waypoints\n 2: make trajectory from waypoints\n 3:plan path and move to named waypoint\n 4: load a saved plan \n 5: say something \nq: exit")
     menuchoice = input()	
     if menuchoice =="1": 
         print("Gathering waypoints.  Enter filename (or enter to default to waypoints.csv)")
@@ -158,9 +162,31 @@ if __name__=="__main__":
         print("exiting")
         exit
     elif menuchoice=="3":
-        print("starting speech. Enter the text to say")
-        texttospeak=input()
-        robotintroduction(texttospeak)
+        print("Enter filename for waypoint from file or enter to specify joints manually")
+        filename = input()
+        if filename=="":
+            goodposition=False
+            print("Getting joint positions manually")
+            while goodposition== False:
+                print("Enter the joint positions 1-7, separated by commas")
+                print("ex: 3.5, 2, -1, 0, 4, 0, 1.5")
+                jointpositions=input()
+                jointpositionlist = [float(value) for value in jointpositions.split(",")]
+                
+                print("Planning to joint position",jointpositionlist, "enter to continue or n to enter again")
+                userentry = input()
+                if userentry =="n":
+                    goodposition=False
+                else:
+                    goodposition=True
+        else:
+            print("Filename to load waypoint? (default:waypoints.csv)")
+            filename = input()
+            
+        
+        arm.plan_joint_pos(jointpositionlist)
+        
+            
     elif menuchoice=="4":
         print("what is the path/filename where the trajectory is stored?")
         planfilename = input()
