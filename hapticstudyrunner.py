@@ -118,7 +118,17 @@ def robot_follower_sequence():
     hslibrary.robotspeech("I am ready to start.")
     # start the trajectory running
     print("Press enter to start force-control mode.")
-
+    input()
+    # start rosbag recording
+                    #FIXME
+    start_force_control()
+    print("Press enter when the participant is done with the trajectory.")
+    input()
+    stop_force_control()
+    # stop ROSBAG recording
+                   # FIXME
+    print("Stop the IMU recording and press enter to continue.")    
+    input()
 
 print("Welcome to Haptic Study Runner.\n")
 print("Choose a mode:\n")
