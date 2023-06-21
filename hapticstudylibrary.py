@@ -137,7 +137,27 @@ def execute_motion_plan(planfilename="triangle.pkl"):
     for i, plan in enumerate(plan):
         print("executing plan", i) 
         arm.move_robot(plan)    
-
+def select_waypoint():
+    print("Enter filename for waypoint from file or enter to specify joints manually")
+        filename = input()
+        if filename=="":
+            goodposition=False
+            print("Getting joint positions manually")
+            while goodposition== False:
+                print("Enter the joint positions 1-7, separated by commas")
+                print("ex: 3.5, 2, -1, 0, 4, 0, 1.5")
+                jointpositions=input()
+                jointpositionlist = [float(value) for value in jointpositions.split(",")]
+                
+                print("Planning to joint position",jointpositionlist, "enter to continue or n to enter again")
+                userentry = input()
+                if userentry =="n":
+                    goodposition=False
+                else:
+                    goodposition=True
+        else:
+            print("Filename to load waypoint? (default:waypoints.csv)")
+            filename = input()
         
 if __name__=="__main__":
     print("\n\n\n\n")	
@@ -162,28 +182,7 @@ if __name__=="__main__":
         print("exiting")
         exit
     elif menuchoice=="3":
-        print("Enter filename for waypoint from file or enter to specify joints manually")
-        filename = input()
-        if filename=="":
-            goodposition=False
-            print("Getting joint positions manually")
-            while goodposition== False:
-                print("Enter the joint positions 1-7, separated by commas")
-                print("ex: 3.5, 2, -1, 0, 4, 0, 1.5")
-                jointpositions=input()
-                jointpositionlist = [float(value) for value in jointpositions.split(",")]
-                
-                print("Planning to joint position",jointpositionlist, "enter to continue or n to enter again")
-                userentry = input()
-                if userentry =="n":
-                    goodposition=False
-                else:
-                    goodposition=True
-        else:
-            print("Filename to load waypoint? (default:waypoints.csv)")
-            filename = input()
-            
-        
+        jointpositionlist = select_waypoint()
         arm.plan_joint_pos(jointpositionlist)
         
             
