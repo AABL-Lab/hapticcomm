@@ -139,76 +139,79 @@ def execute_motion_plan(planfilename="triangle.pkl"):
 
 
 def select_waypoint():
-    print("Enter filename for waypoint from file or enter to specify joints manually")
-        filename = input()
-        if filename=="":
-            goodposition=False
-            print("Getting joint positions manually")
-            while goodposition== False:
-                print("Enter the joint positions 1-7, separated by commas")
-                print("ex: 3.5, 2, -1, 0, 4, 0, 1.5")
-                jointpositions=input()
-                jointpositionlist = [float(value) for value in jointpositions.split(",")]
-                
-                print("Planning to joint position",jointpositionlist, "enter to continue or n to enter again")
-                userentry = input()
-                if userentry =="n":
-                    goodposition=False
-                else:
-                    goodposition=True
-        else:
-            print("Filename to load waypoint? (default:waypoints.csv)")
-            filename = input()
-            print("Loading waypoints from", filename)
-
-    
-            with open(filename, 'r') as f:
-                filelist = csv.DictReader(f)    
-                data = [row for row in filelist]
-        
-                jointnames = ["j2s7s300_joint_1", "j2s7s300_joint_2", "j2s7s300_joint_3", "j2s7s300_joint_4", "j2s7s300_joint_5", "j2s7s300_joint_6", "j2s7s300_joint_7"]    
-
-                print("Select the points to use in the trajectory")
-                positionname_list = []
-                for row in data:
-                    positionname_list.append(row['positionname'])
-        
-                print(positionname_list)
-            # loop            
-            while point_validated==False:
-        # Get the point name entered by the user
-                point = str(input())
-        # validate that the point they entered is in the list of waypoints
-                for row in data:
-                    if row['positionname']==point:
-                        # if it is, add to waypointlist
-                        print("point found")
-                        goodrow = row.copy() # make a copy disconnected from original
-                        # position name has to be removed from the dictionary
-                        # of joint positions before it is passed to armpy
-                        del goodrow['positionname']
-                        # values need to be converted to floats for armpy
-                        for k, v in goodrow.items():
-                            goodrow[k] = float(v)
-                        print("Waypoint", goodrow, "selected")
-                        print("Ready to move to waypoint", goodrow)
-                        print("Press y to move to waypoint", goodrow, "or any other key to select again")
-                        continue = str(input())
-                        if continue=="y":
-                            point_validated==True
-                            break 
-                        else:
-                            "Selecting another waypoint"
-                    else: 
-                        print("Enter the point you want to navigate to")
-                        print(positionname_list)
-                        point = str(input())
-            # point is validated, let's go
-            print("Moving to", goodrow)
-            trajectory = arm.plan_joint_waypoints(waypointlist)
-            arm.move_robot(trajectory)
-            print("Arm moved to waypoint", goodrow)
+    print("Enter filename for waypoint from file, 0 to specify joints manually, or enter to select from waypoints.csv")
+    filenameselect = input()
+    if filenameselect==0:
+        goodposition=False
+        print("Getting joint positions manually")
+        while goodposition== False:
+            print("Enter the joint positions 1-7, separated by commas")
+            print("ex: 3.5, 2, -1, 0, 4, 0, 1.5")
+            jointpositions=input()
+            jointpositionlist = [float(value) for value in jointpositions.split(",")]
             
+            print("Planning to joint position",jointpositionlist, "enter to continue or n to enter again")
+            userentry = input()
+            if userentry =="n":
+                goodposition=False
+            else:
+                goodposition=True
+
+    elif filenameselect=="":
+        filename = "waypoints.csv"
+    else:
+        filename = filenameselect    
+
+    if filenameselect !=0:
+        print("Loading waypoints from", filename)
+        with open(filename, 'r') as f:
+            filelist = csv.DictReader(f)    
+            data = [row for row in filelist]
+    
+            jointnames = ["j2s7s300_joint_1", "j2s7s300_joint_2", "j2s7s300_joint_3", "j2s7s300_joint_4", "j2s7s300_joint_5", "j2s7s300_joint_6", "j2s7s300_joint_7"]    
+
+            print("Select the points to use in the trajectory")
+            positionname_list = []
+            for row in data:
+                positionname_list.append(row['positionname'])
+            print(positionname_list)
+        # loop
+        point_validated = False
+        while point_validated==False:
+    # Get the point name entered by the user
+            point = str(input())
+    # validate that the point they entered is in the list of waypoints
+            for row in data:
+                if row['positionname']==point:
+                    # if it is, add to waypointlist
+                    print("point found")
+                    goodrow = row.copy() # make a copy disconnected from original
+                    # position name has to be removed from the dictionary
+                    # of joint positions before it is passed to armpy
+                    del goodrow['positionname']
+                    # values need to be converted to floats for armpy
+                    for k, v in goodrow.items():
+                        goodrow[k] = float(v)
+                    print("Waypoint", goodrow, "selected")
+                    print("Ready to move to waypoint", goodrow)
+                    print("\n Press y to move to waypoint", goodrow, "or any other key to select again")
+                    goodwaypoint = str(input())
+                    if goodwaypoint=="y":
+                        point_validated=True
+                        break 
+                    else:
+                        "Selecting another waypoint"
+                else: 
+                    print("Enter the point you want to navigate to")
+                    print(positionname_list)
+                    point = str(input())
+        # point is validated, let's go
+        goodrowlist = [goodrow]
+        print("\n Moving to", goodrowlist, "type", type(goodrowlist))
+        trajectory = arm.plan_joint_waypoints(goodrowlist)
+        arm.move_robot(trajectory)
+        print("Arm moved to waypoint", goodrow)
+        
 
 
                         
