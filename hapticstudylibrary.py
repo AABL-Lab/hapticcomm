@@ -116,7 +116,11 @@ def create_trajectory_from_waypoints(filename="waypoints.csv"):
     # now save the trajectory out to a file so we can load it later
     print("name this trajectory/pickle filename")
     trajectoryname = input()
-    with open("trajectorypickles/"+trajectoryname+".pkl", "wb") as f:
+    picklepath = 'trajectorypickles/'+trajectoryname+'.pkl'
+    exists = os.path.isfile(picklepath)
+    if exists!=True:
+        open(picklepath, 'w+').close()
+    with open(picklepath, "wb") as f:
         pickle.dump(trajectory, f)
 
     print("press enter to try out the trajectory")
@@ -141,16 +145,17 @@ def execute_motion_plan(planfilename="triangle.pkl"):
 def select_waypoint():
     print("Enter filename for waypoint from file, 0 to specify joints manually, or enter to select from waypoints.csv")
     filenameselect = input()
-    if filenameselect==0:
+    if filenameselect=="0":
         goodposition=False
         print("Getting joint positions manually")
         while goodposition== False:
             print("Enter the joint positions 1-7, separated by commas")
             print("ex: 3.5, 2, -1, 0, 4, 0, 1.5")
             jointpositions=input()
-            jointpositionlist = [float(value) for value in jointpositions.split(",")]
+            jointposition = [float(value) for value in jointpositions.split(",")]
             
-            print("Planning to joint position",jointpositionlist, "enter to continue or n to enter again")
+            
+            print("Planning to joint position",jointposition, "enter to continue or n to enter again")
             userentry = input()
             if userentry =="n":
                 goodposition=False
@@ -162,7 +167,7 @@ def select_waypoint():
     else:
         filename = filenameselect    
 
-    if filenameselect !=0:
+    if filenameselect !="0":
         print("Loading waypoints from", filename)
         with open(filename, 'r') as f:
             filelist = csv.DictReader(f)    
@@ -183,7 +188,6 @@ def select_waypoint():
     # validate that the point they entered is in the list of waypoints
             for row in data:
                 if row['positionname']==point:
-                    # if it is, add to waypointlist
                     print("point found")
                     goodrow = row.copy() # make a copy disconnected from original
                     # position name has to be removed from the dictionary
@@ -198,6 +202,7 @@ def select_waypoint():
                     goodwaypoint = str(input())
                     if goodwaypoint=="y":
                         point_validated=True
+                        jointposition = goodrow
                         break 
                     else:
                         "Selecting another waypoint"
@@ -205,12 +210,7 @@ def select_waypoint():
                     print("Enter the point you want to navigate to")
                     print(positionname_list)
                     point = str(input())
-        # point is validated, let's go
-        goodrowlist = [goodrow]
-        print("\n Moving to", goodrowlist, "type", type(goodrowlist))
-        trajectory = arm.plan_joint_waypoints(goodrowlist)
-        arm.move_robot(trajectory)
-        print("Arm moved to waypoint", goodrow)
+    return jointposition
         
 
 
@@ -238,8 +238,12 @@ if __name__=="__main__":
         print("exiting")
         exit
     elif menuchoice=="3":
-        jointpositionlist = select_waypoint()
-        arm.plan_joint_pos(jointpositionlist)
+        jointposition = select_waypoint()
+        # point is validated, let's go
+        print("\n Moving to", jointposition)
+        trajectory = arm.move_to_joint_pose(jointposition)
+        print("Arm moved to waypoint", jointposition)
+        
             
     elif menuchoice=="4":
         print("what is the path/filename where the trajectory is stored?")
