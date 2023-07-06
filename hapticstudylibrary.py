@@ -111,6 +111,7 @@ def create_trajectory_from_waypoints(filename="waypoints.csv"):
     
     print("Generating trajectories from waypoints:\n")
     print("waypoint list is ", waypointlist, "\n")
+    arm.set_velocity(.5)
     trajectory = arm.plan_joint_waypoints(waypointlist)
        
     # now save the trajectory out to a file so we can load it later
@@ -179,7 +180,7 @@ def select_waypoint():
             positionname_list = []
             for row in data:
                 positionname_list.append(row['positionname'])
-            print(positionname_list)
+            print("\n -----------------------------------\n" ,positionname_list)
         # loop
         point_validated = False
         while point_validated==False:
@@ -209,7 +210,6 @@ def select_waypoint():
                 else: 
                     print("Enter the point you want to navigate to")
                     print(positionname_list)
-                    point = str(input())
     return jointposition
         
 
@@ -240,6 +240,9 @@ if __name__=="__main__":
     elif menuchoice=="3":
         jointposition = select_waypoint()
         # point is validated, let's go
+        print("Set arm speed 0-1, default is .2")
+        velocity = float(input())
+        arm.set_velocity(velocity)
         print("\n Moving to", jointposition)
         trajectory = arm.move_to_joint_pose(jointposition)
         print("Arm moved to waypoint", jointposition)
