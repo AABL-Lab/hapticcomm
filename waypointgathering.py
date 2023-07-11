@@ -14,7 +14,7 @@ def waypointgathering(outputfile='waypoints.csv'):
     # this CSV file should exist with these field names/headers
     # but will be created by the writer if it does not exist
 
-    rospy.init_node("waypointgathering")
+#    rospy.init_node("waypointgathering")
     grip = armpy.gripper.Gripper()
     arm = armpy.arm.Arm()
     fieldnames=['positionname', "j2s7s300_joint_1", "j2s7s300_joint_2", "j2s7s300_joint_3", "j2s7s300_joint_4", "j2s7s300_joint_5", "j2s7s300_joint_6", "j2s7s300_joint_7" ]
@@ -60,7 +60,7 @@ def waypointgathering(outputfile='waypoints.csv'):
         else: 
             morepoints = True # loop for more points
 
-    with open(outputfile, 'w') as f: 
+    with open(outputfile, 'a') as f: 
         writer_object = csv.writer(f, delimiter=',')
         writer_object.writerow(fieldnames)
         # write joints 1-7 from the message to the CSV, for all of the points
@@ -114,5 +114,6 @@ def waypoints2trajectories(waypointsfile ="waypoints.csv"):
 if __name__=="__main__":
 # might need this 
 	#armpy.move_to_point(jointpositionlist) # move to the joint position, defined as a 7dof list
-	print("Gather trajectories using hapticstudylibrary.py")
-	#waypoints2trajectories("waypoints.csv")
+    rospy.init_node("waypointgathering")
+    print("Gather trajectories using hapticstudylibrary.py")
+    #waypoints2trajectories("waypoints.csv")

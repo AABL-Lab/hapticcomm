@@ -21,7 +21,9 @@ import smach_ros
 import actionlib
 import hlpr_dialogue_production.msg as dialogue_msgs
 import sys
+rospy.init_node('hapticcommnode')
 arm = armpy.arm.Arm()
+gripper = armpy.gripper.Gripper()
 
 def robotspeak(text2speak):
     # modified from test_action_client in hlpr_dialogue_production
@@ -216,43 +218,61 @@ def select_waypoint():
 
                         
 if __name__=="__main__":
-    print("\n\n\n\n")	
-    print("This is a library file but here are some things to test\n")
-    print("1: gather waypoints\n 2: make trajectory from waypoints\n 3:plan path and move to named waypoint\n 4: load a saved plan \n 5: say something \nq: exit")
-    menuchoice = input()	
-    if menuchoice =="1": 
-        print("Gathering waypoints.  Enter filename (or enter to default to waypoints.csv)")
-        filename = input()
-        if len(filename)==0:
-	        waypointgathering.waypointgathering()
-        else:
+    quitcatch = False
+    while quitcatch ==False:
+        print("\n\n\n\n")	
+        print("This is a library file but here are some things to test\n")
+        print("1: gather waypoints\n 2: make trajectory from waypoints\n 3:plan path and move to named waypoint\n 4: load a saved plan \n 5: say something \n g: change gripper status\nq: exit")
+        menuchoice = input()	
+        if menuchoice =="1": 
+            print("Gathering waypoints.  Enter filename (or enter to default to waypoints.csv)")
+            filename = input()
+            if len(filename)==0:
+                waypointgathering.waypointgathering()
+            else:
                 waypointgathering.waypointgathering(filename)
-    elif menuchoice =="2":
-        print("making trajectory from waypoints. Enter filename or enter for default (waypoints.csv)")
-        filename = input()
-        if len(filename)==0:
+        elif menuchoice =="2":
+            print("making trajectory from waypoints. Enter filename or enter for default (waypoints.csv)")
+            filename = input()
+            if len(filename)==0:
                 create_trajectory_from_waypoints()
-        else:        
+            else:        
                 create_trajectory_from_waypoints(filename)
-    elif menuchoice =="q":
-        print("exiting")
-        exit
-    elif menuchoice=="3":
-        jointposition = select_waypoint()
-        # point is validated, let's go
-        print("Set arm speed 0-1, default is .2")
-        velocity = float(input())
-        arm.set_velocity(velocity)
-        print("\n Moving to", jointposition)
-        trajectory = arm.move_to_joint_pose(jointposition)
-        print("Arm moved to waypoint", jointposition)
+        elif menuchoice =="q":
+            print("exiting")
+            quitcatch = True
+            exit
+        elif menuchoice=="3":
+            jointposition = select_waypoint()
+            # point is validated, let's go
+            print("Set arm speed 0-1, default is .2")
+            velocity = float(input())
+            arm.set_velocity(velocity)
+            print("\n Moving to", jointposition)
+            trajectory = arm.move_to_joint_pose(jointposition)
+            print("Arm moved to waypoint", jointposition)
         
+        elif menuchoice=="4":
+            path = os.getcwd()
+            options = os.listdir(path+"/trajectorypickles")
+            print(options)
+            print("Choose the filename (from trajectorypickles) for the trajectory you want to run")
+            planfilename = input()
             
-    elif menuchoice=="4":
-        print("what is the path/filename where the trajectory is stored?")
-        planfilename = input()
-        execute_motion_plan(planfilename)
-    elif menuchoice=="5":
-        print("Text to speak?\n")
-        speaktext = input()
-        robotspeak(speaktext)
+            execute_motion_plan("trajectorypickles/"+planfilename)
+
+            
+        elif menuchoice=="5":
+            print("Text to speak?\n")
+            speaktext = input()
+            robotspeak(speaktext)
+
+        elif menuchoice == "g":
+            print("Open (o) or close (c) or back (any other key)?")
+            grippercommand = input()
+            if grippercommand == "o":
+                gripper.open()
+            elif grippercommand == "c":
+                gripper.close()
+            else:
+                pass
