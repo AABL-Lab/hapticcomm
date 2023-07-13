@@ -21,7 +21,7 @@ import smach_ros
 import actionlib
 import hlpr_dialogue_production.msg as dialogue_msgs
 import sys
-rospy.init_node('hapticcommnode')
+
 arm = armpy.arm.Arm()
 gripper = armpy.gripper.Gripper()
 
@@ -218,6 +218,7 @@ def select_waypoint():
 
                         
 if __name__=="__main__":
+    rospy.init_node('hapticcommnode')
     quitcatch = False
     while quitcatch ==False:
         print("\n\n\n\n")	
