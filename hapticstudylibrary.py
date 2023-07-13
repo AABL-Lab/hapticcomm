@@ -22,8 +22,6 @@ import actionlib
 import hlpr_dialogue_production.msg as dialogue_msgs
 import sys
 
-arm = armpy.arm.Arm()
-gripper = armpy.gripper.Gripper()
 
 def robotspeak(text2speak):
     # modified from test_action_client in hlpr_dialogue_production
@@ -218,12 +216,18 @@ def select_waypoint():
 
                         
 if __name__=="__main__":
-    rospy.init_node('hapticcommnode')
+    # these need to be done exactly once across all files
+    rospy.init_node('hapticcomm')
+    arm = armpy.arm.Arm()
+    gripper = armpy.gripper.Gripper()
+
+
+
     quitcatch = False
     while quitcatch ==False:
         print("\n\n\n\n")	
         print("This is a library file but here are some things to test\n")
-        print("1: gather waypoints\n 2: make trajectory from waypoints\n 3:plan path and move to named waypoint\n 4: load a saved plan \n 5: say something \n g: change gripper status\nq: exit")
+        print("1: gather waypoints\n 2: make trajectory from waypoints\n 3:plan path and move to named waypoint\n 4: load a saved plan \n 5: say something \n g: change gripper status\n free: force control mode \n lock: stop force control mode \nq: exit")
         menuchoice = input()	
         if menuchoice =="1": 
             print("Gathering waypoints.  Enter filename (or enter to default to waypoints.csv)")
@@ -277,3 +281,11 @@ if __name__=="__main__":
                 gripper.close()
             else:
                 pass
+
+        elif menuchoice == "free":
+            print("Starting force control mode")
+            arm.start_force_control()
+            
+        elif menuchoice == "lock":
+            print("Stop force control mode")
+            arm.stop_force_control()
