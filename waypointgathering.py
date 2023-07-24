@@ -10,7 +10,7 @@ import csv
 import armpy.arm
 import armpy.gripper
 
-def waypointgathering(outputfile='waypoints.csv'):
+def gather_waypoints(outputfile='waypoints.csv'):
     # this CSV file should exist with these field names/headers
     # but will be created by the writer if it does not exist
 

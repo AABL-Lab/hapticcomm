@@ -1,7 +1,7 @@
 #hapticstudylibrary.py
 # Kat Allen 2023 
 # kat.allen@tufts.edu
-
+import waypointgathering
 from boto3 import Session
 from botocore.exceptions import BotoCoreError, ClientError
 from contextlib import closing
@@ -12,7 +12,6 @@ from tempfile import gettempdir
 import csv
 import armpy.arm
 import armpy.gripper
-import waypointgathering  # custom
 import pickle
 # stuff for speech
 import rospy
@@ -233,9 +232,9 @@ if __name__=="__main__":
             print("Gathering waypoints.  Enter filename (or enter to default to waypoints.csv)")
             filename = input()
             if len(filename)==0:
-                waypointgathering.waypointgathering()
+                waypointgathering.gather_waypoints()
             else:
-                waypointgathering.waypointgathering(filename)
+                waypointgathering.gather_waypoints(filename)
         elif menuchoice =="2":
             print("making trajectory from waypoints. Enter filename or enter for default (waypoints.csv)")
             filename = input()
@@ -250,9 +249,9 @@ if __name__=="__main__":
         elif menuchoice=="3":
             jointposition = select_waypoint()
             # point is validated, let's go
-            print("Set arm speed 0-1, default is .2")
-            velocity = float(input())
-            arm.set_velocity(velocity)
+#            print("Set arm speed 0-1, default is .2")
+#            velocity = float(input())
+            arm.set_velocity(.5)
             print("\n Moving to", jointposition)
             trajectory = arm.move_to_joint_pose(jointposition)
             print("Arm moved to waypoint", jointposition)
