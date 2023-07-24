@@ -24,7 +24,7 @@ import sys
 
 def robotspeak(text2speak):
     # modified from test_action_client in hlpr_dialogue_production
-    rospy.init_node("test_action_client", disable_signals=True)
+
     client = actionlib.SimpleActionClient("/HLPR_Dialogue",dialogue_msgs.DialogueActAction)
     rospy.loginfo("waiting for server")
     client.wait_for_server()
