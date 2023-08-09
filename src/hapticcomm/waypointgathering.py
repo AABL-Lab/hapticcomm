@@ -9,6 +9,10 @@ import numpy as np
 import csv 
 import armpy.arm
 import armpy.gripper
+arm = armpy.arm.Arm()
+start_force_control=arm.start_force_control
+stop_force_control= arm.stop_force_control
+
 
 def gather_waypoints(outputfile='waypoints.csv'):
     # this CSV file should exist with these field names/headers
@@ -16,8 +20,7 @@ def gather_waypoints(outputfile='waypoints.csv'):
 
 #    rospy.init_node("waypointgathering")
     fieldnames=['positionname', "j2s7s300_joint_1", "j2s7s300_joint_2", "j2s7s300_joint_3", "j2s7s300_joint_4", "j2s7s300_joint_5", "j2s7s300_joint_6", "j2s7s300_joint_7" ]
-    start_force_control=arm.start_force_control
-    stop_force_control= arm.stop_force_control
+
     
     morepoints = True # set up the loop
     all_points=[]

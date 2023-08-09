@@ -22,7 +22,34 @@ import smach_ros
 import actionlib
 import hlpr_dialogue_production.msg as dialogue_msgs
 import sys
+# for controlling the IMU
+import requests
 
+def IMUcontrol(url,startstop):
+    #requests.get('http://127.0.0.1/foo.php', headers={'host': 'example.com'})
+    timeout = 60
+    if startstop==1: #start
+        print(url+"/IMU_on")
+        try:
+            r = requests.get(url+"/IMU_on", headers={'host': 'IMUcontrol.com'}, timeout=timeout)
+            print("IMU on requested")
+        except:
+            print("timed out, check that server is running")
+    elif startstop==0: # stop
+        try:
+            r = requests.get(url+"/IMU_off", headers={'host': 'IMUcontrol.com'}, timeout=timeout)
+            print("IMU off requested")
+        except:
+            print("timed out, check that the server is running")
+
+
+def getIMUdata(url, filename):
+    timeout=60
+    try:
+        r = requests.get(url+"/preview_last_data", headers={'host': 'IMUcontrol.com'}, timeout=timeout)
+    except:
+        print("timed out, check that the server is running")
+        
 
 def robotspeak(text2speak):
     # modified from test_action_client in hlpr_dialogue_production
@@ -60,11 +87,13 @@ def create_trajectory_from_waypoints(filename="waypoints.csv"):
     # filename should be a CSV file, formatted like waypointgathering.py
     print("Loading waypoints from", filename)
 
-    
-    with open(filename, 'r') as f:
-        filelist = csv.DictReader(f)    
-        data = [row for row in filelist]
-    
+    try:
+        with open(filename, 'r') as f:
+            filelist = csv.DictReader(f)    
+            data = [row for row in filelist]
+    except:
+        print("No such file name", filename)
+        return
     jointnames = ["j2s7s300_joint_1", "j2s7s300_joint_2", "j2s7s300_joint_3", "j2s7s300_joint_4", "j2s7s300_joint_5", "j2s7s300_joint_6", "j2s7s300_joint_7"]    
 
     print("Select the points to use in the trajectory")
@@ -222,14 +251,18 @@ if __name__=="__main__":
     rospy.init_node('hapticcomm')
     arm = armpy.arm.Arm()
     gripper = armpy.gripper.Gripper()
-
-
-
+    import rospkg
+    rospack = rospkg.RosPack()
+    rospack.list()
+    hcpath = rospack.get_path('hapticcomm')
+    print(hcpath, "is the path used for hapticcomm")
+    os.chdir(hcpath)
+    
     quitcatch = False
     while quitcatch ==False:
         print("\n\n\n\n")	
         print("This is a library file but here are some things to test\n")
-        print("1: gather waypoints\n 2: make trajectory from waypoints\n 3:plan path and move to named waypoint\n 4: load a saved plan \n 5: say something \n g: change gripper status\n free: force control mode \n lock: stop force control mode \nq: exit")
+        print("1: gather waypoints\n 2: make trajectory from waypoints\n 3:plan path and move to named waypoint\n 4: load a saved plan \n 5: say something \n g: change gripper status\n free: force control mode \n lock: stop force control mode \n IMU: start and stop recording \nq: exit")
         menuchoice = input()	
         if menuchoice =="1": 
             print("Gathering waypoints.  Enter filename (or enter to default to waypoints.csv)")
@@ -291,3 +324,19 @@ if __name__=="__main__":
         elif menuchoice == "lock":
             print("Stop force control mode")
             arm.stop_force_control()
+
+        elif menuchoice =="IMU":
+            print("1: start, 0: stop, anything else: go back")
+            control = input()
+            URL = "http://10.5.0.6"
+            if control == "0":
+                print("sending stop to", URL)
+                IMUcontrol(URL ,0)
+
+            elif control == "1":
+                print("Sending start to", URL)
+                IMUcontrol(URL, 1)
+
+            else:
+                pass
+                
