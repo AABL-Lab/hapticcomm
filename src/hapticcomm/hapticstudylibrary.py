@@ -2,8 +2,10 @@
 #hapticstudylibrary.py
 # Kat Allen 2023 
 # kat.allen@tufts.edu
-
-from hapticcomm import waypointgathering
+try:
+    from hapticcomm import waypointgathering
+except:
+    import waypointgathering
 from boto3 import Session
 from botocore.exceptions import BotoCoreError, ClientError
 from contextlib import closing
@@ -47,8 +49,23 @@ def getIMUdata(url, filename):
     timeout=60
     try:
         r = requests.get(url+"/preview_last_data", headers={'host': 'IMUcontrol.com'}, timeout=timeout)
-    except:
-        print("timed out, check that the server is running")
+        print(type(r),"\n", r)
+        # parse the most recent IMU data into a file
+        with open(filename, 'a') as f: 
+            f.write(response.text) # this does not work
+            #            writer_object = csv.writer(f, delimiter=',')
+            #            for row in reversed(r):
+#                # read from the end until you find the beginning of the last entry
+#                while not ("start") in row:
+#                    # and write those to the file
+#                    writer_object.writerow(row)
+
+        
+
+    except Exception as error:
+        print("error:", error)
+
+ 
         
 
 def robotspeak(text2speak):
