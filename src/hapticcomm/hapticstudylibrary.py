@@ -182,8 +182,7 @@ def execute_motion_plan(planfilename="triangle.pkl"):
     with open (planfilename, "rb") as f:
         plan = pickle.load(f)
         
-    print("press enter to run the loaded trajectory", planfilename)
-    input()
+    print("running the loaded trajectory", planfilename)
     print("Executing the trajectory")
     for i, plan in enumerate(plan):
         print("executing plan", i) 
@@ -264,7 +263,6 @@ def select_waypoint():
                         
 if __name__=="__main__":
     # these need to be done exactly once across all files
-
     rospy.init_node('hapticcomm')
     arm = armpy.arm.Arm()
     gripper = armpy.gripper.Gripper()

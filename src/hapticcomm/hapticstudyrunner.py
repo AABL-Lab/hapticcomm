@@ -4,6 +4,31 @@
 # kat.allen@tufts.edu
 
 from hapticcomm import hapticstudylibrary as hl
+try:
+    from hapticcomm import waypointgathering
+except:
+    import waypointgathering
+from boto3 import Session
+from botocore.exceptions import BotoCoreError, ClientError
+from contextlib import closing
+import os
+import sys
+import subprocess
+from tempfile import gettempdir
+import csv
+import armpy.arm
+import armpy.gripper
+import pickle
+# stuff for speech
+import rospy
+import smach
+import smach_ros
+import actionlib
+import hlpr_dialogue_production.msg as dialogue_msgs
+import sys
+# for controlling the IMU
+import requests
+import time
 
 def setup_experiment():
 # Set up experiment            
@@ -17,25 +42,31 @@ def setup_experiment():
         # create folder for IMU and rosbag data for this trial
         
         # set IP address for IMU
-        print("Enter IP or just enter for default (10.5.0.6)")
-        IPentry = str(input())
-        if IPentry =="":
-            IP = "10.5.0.6"
-        else:
-            IP = IPentry
-            
-            # get order of cards from prerandomized set experiment_card_order.txt
-        try:
-            filename ="experiment_card_order.txt"
-            with open(filename, 'r') as f:
-                filelist = csv.DictReader(f)    
-                cardsorts = [row for row in filelist] #all the card orders
+    print("Enter IP or just enter for default (10.5.0.6)")
+    IPentry = str(input())
+    if IPentry =="":
+        IP = "10.5.0.6"
+    else:
+        IP = IPentry
+        
+    # get order of cards from prerandomized set experiment_card_order.txt
+    try:
+        filename = "/home/katallen/catkin_ws/src/hapticcomm/experiment_card_order.txt"
+        #filename ="experiment_card_order.txt"
+        with open(filename, 'r') as f:
+            filelist = csv.DictReader(f)    
+            cardsorts = [row for row in filelist] #all the card orders
             # just this experiment's cards
-            cards = cardsorts(experimentnumber)
-        except:
-            print("No such file name",filename)
-            
-def humanhuman():
+            card_dictionary = cardsorts[experimentnumber]
+            cards = list(card_dictionary.values()) 
+            print("This experiment's cards are, ", cards)
+            return cards, IP
+    except Exception as error:
+        print(error)
+#        print("No such file name",filename)
+
+
+def humanhuman(cards, IP):
     # Start human-human trial        
     # Start upper and side camera
     
@@ -55,7 +86,7 @@ def humanhuman():
         return
     else:
         # start IMU, allow participants to begin card 1
-        print("Ready for card 1,", cards(0),"press any key to start IMU")
+        print("Ready for card 1,", cards[0],"press any key to start IMU")
         startstopIMU = input()
         #start the IMU 
         hl.IMUcontrol("http://"+IP, 1)
@@ -69,87 +100,117 @@ def humanhuman():
         # stop IMU, trial 1 finished
         
         # start IMU, allow participants to begin card 2
-        print("IMU started, begin card 2 now")
+        print("Ready to start card 2 now, ", cards[1])
+        startstopIMU = input()
+        #start the IMU 
+        hl.IMUcontrol("http://"+IP, 1)
         
+        print("IMU started, begin card 1 now \n press any key to stop IMU")
+        startstopIMU = input()
         # stop IMU, trial 2 finished
+        hl.IMUcontrol("http://"+IP, 0)
+
         
+        print("Ready to start card 3 ", cards[2])
         # start IMU, participants begin card 3
+        startstopIMU = input()
+        #start the IMU 
+        hl.IMUcontrol("http://"+IP, 1)
         
+        print("IMU started, begin card 3 now \n press any key to stop IMU")
+        startstopIMU = input()
         # stop IMU, trial 3 finished
+        hl.IMUcontrol("http://"+IP, 0)
+        
 
-def robothuman(cards):
-    startposition = [4.721493795519453,4.448460661610131,-0.016183561810626166,1.5199463284150871,3.0829157579242956,4.517873824894174,0]
-    arm.set_velocity(.5)
-    print("\n Moving to start position")
-    trajectory = arm.move_to_joint_pose(startposition)
-
+def robothuman(cards, IP):
     # Introduce robot
     hl.robotspeak("Hello, my name is Boop")
-    hl.executemotionplan("wave.pkl")
+    hl.execute_motion_plan("trajectorypickles/wave.pkl")
 
-    print("enter to wait 20s, close gripper, wait 5s, and start the demo task")
+    print("enter to move to start,  close gripper and start the demo task")
     input()
-    time.sleep(20)
-    runcard("triangle.pkl")
+
+    hl.execute_motion_plan("trajectorypickles/home2start.pkl")
+    time.sleep(5)
+    gripper.close()
+    runcard("triangle.pkl", IP)
 
     practice = True
     while practice:
         print("Repeat the practice task?  y to repeat, n to continue")
         ctrl = input()
         if ctrl =="y":
-            practice == True
-            runcard("triangle.pkl")
+            practice = True
+            print("more practice")
+            runcard("triangle.pkl", IP)
         elif ctrl == "n":
-            practice == False
+            print("done with practice")
+            practice = False
+        elif ctrl =="q":
+            print("returning to menu")
+            return
+        else:
+            print("control input was", ctrl,"try again")
             
     # moving on the new cards
-    print("Ready for card 4,", cards(3))
-    runcard(cards(3))
+    print("Ready for card 4,", cards[3])
+    runcard(cards[3], IP)
 
-    print("Ready for card 5,", cards(4))
-    runcard(cards(4))
+    print("Ready for card 5,", cards[4])
+    runcard(cards[4], IP)
 
-    print("Ready for last card", cards(5))
-    runcard(cards(5))
+    print("Ready for last card", cards[5])
+    runcard(cards[5], IP)
 
     print("Enter to open gripper to put down tray")
     input()
     gripper.open()
     hl.robotspeak("Thank you for participating in our study! Goodbye!")
-    print("Follower participant complete\n Enter when ready for leader participant")
-    input()
+    hl.execute_motion_plan("trajectorypickles/start2home.pkl")
+    print("Follower participant complete")
+    return
     
-# LEADER PARTICIPANT
-    startposition = [4.721493795519453,4.448460661610131,-0.016183561810626166,1.5199463284150871,3.0829157579242956,4.517873824894174,0]
-    arm.set_velocity(.5)
-    print("\n Moving to start position")
-    trajectory = arm.move_to_joint_pose(startposition)
 
-    # Introduce robot
+def humanleader(cards, IP): 
+    # LEADER PARTICIPANT
+# Introduce robot
     hl.robotspeak("Hello, my name is Boop")
-    hl.executemotionplan("wave.pkl")
+    hl.execute_motion_plan("trajectorypickles/wave.pkl")
 
+
+    print("enter to move to start, close gripper and start the demo task")
+    input()
+
+    hl.execute_motion_plan("trajectorypickles/home2start.pkl")
+    time.sleep(5)
+    gripper.close()
+
+    
     print("Ready for test card")
-    followcard("triangle")
+    followcard("triangle.pkl", IP)
     practice = True
     while practice:
         print("Repeat the practice task?  y to repeat, n to continue")
         ctrl = input()
         if ctrl =="y":
-            practice == True
+            practice = True
+            print("more practice")
             
-            followcard("triangle.pkl")
+            followcard("triangle.pkl", IP)
         elif ctrl == "n":
-            practice == False
+            practice = False
+            print("done with practice")
+            
     
-    print("Ready for card 4,", cards(3))
-    followcard(cards(3))
+    print("Ready for card 4,", cards[3])
+    followcard(cards[3], IP)
 
-    print("Ready for card 5,", cards(4))
-    followcard(cards(4))
+    print("Ready for card 5,", cards[4])
+    followcard(cards[4], IP)
 
-    print("Ready for last card", cards(5))
-    followcard(cards(5))
+    print("Ready for last card", cards[5])
+    followcard(cards[5], IP)
 
     print("Enter to open gripper to put down tray")
     input()
@@ -161,13 +222,12 @@ def robothuman(cards):
           
     hl.robotspeak("Thank you for participating in our study! Goodbye!")
 
-def followcard(card):
-    print("Enger to wait 20 seconds, close gripper, and start force control mode on card", card)
+def followcard(card, IP):
+    print("Enter to close gripper and start force control mode on card", card)
     input()
     gripper.close()
     hl.robotspeak("I am ready")
     # start cameras
-
 
     startposition = [4.721493795519453,4.448460661610131,-0.016183561810626166,1.5199463284150871,3.0829157579242956,4.517873824894174,0]
     arm.set_velocity(.5)
@@ -185,15 +245,18 @@ def followcard(card):
 
     print("Starting force control mode")
     arm.start_force_control()
+
+
+    print("press enter when the participant is done")
+    input()
     # stop IMU
     hl.IMUcontrol("http://"+IP, 0)
     # stop ROSBAG - FIXME
-
     arm.stop_force_control()
     print("Force control stopped, card done")
     
         
-def runcard(cardname):
+def runcard(cardname, IP):
     # start the cameras recording
     
     # 
@@ -205,7 +268,8 @@ def runcard(cardname):
     # start IMU
     hl.IMUcontrol("http://"+IP, 1)
     # start trajectory
-    hl.executemotionplan(cardname)
+    print("trajectorypickles/"+cardname)
+    hl.execute_motion_plan("trajectorypickles/"+cardname)
 
 
 
@@ -220,19 +284,45 @@ if __name__ == "__main__":
     hcpath = rospack.get_path('hapticcomm')
     print(hcpath, "is the path used for hapticcomm")
     os.chdir(hcpath)
-    
+    defaultcard = ['M.pkl', 'jetski.pkl', 'pentagon.pkl', 'parasail.pkl', 'st.pkl', 'beaker.pkl']
+    cards = defaultcard
+    IP = "10.5.0.6"
+
     quitcatch = False
     while quitcatch ==False:
         print("\n\n\n\n")	
         print("Haptic Study Runner\n")
 
-        print("1: experiment setup\n 2: human-human\n 3: robot leader \n 4: robot follower \n  q to quit")
+        print("1: experiment setup\n 2: human-human\n 3: robot leader \n 4: robot follower \n 0: move to waypoint\n  q to quit")
         menuchoice = input()
         if menuchoice =="q":
             print("exiting")
             quitcatch = True
             exit
         elif menuchoice == "1":
+            cards, IP = setup_experiment()
+
+        elif menuchoice == "2":
+            if cards == defaultcard:
+                print("Default card in use")
+                
+            humanhuman(cards, IP)
+        elif menuchoice == "3":
+            if cards == defaultcard:
+                print("Default card in use")
+
+            robothuman(cards, IP)
+        elif menuchoice == "4":
+            if cards == defaultcard:
+                print("default card in use")
+            humanleader(cards, IP)
+        elif menuchoice == "0":
+                print("Choose waypoint to move to")
+                jointposition = hl.select_waypoint()
+                arm.move_to_joint_pose(jointposition)
+        else:
+            print("Choose again")
+
             
 
-
+            
