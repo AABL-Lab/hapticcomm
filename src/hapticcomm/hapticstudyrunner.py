@@ -144,12 +144,12 @@ def robothuman(cards, IP, trialnumber):
 
     practice = True
     while practice:
-        print("Repeat the practice task?  y to repeat, n to continue")
+        print("Repeat the practice task?  y to repeat, n to continue, q exit to menu")
         ctrl = input()
         if ctrl =="y":
             practice = True
             print("more practice")
-            runcard("triangle.pkl", IP)
+            runcard("triangle.pkl", IP, trialnumber)
         elif ctrl == "n":
             print("done with practice")
             practice = False
@@ -166,6 +166,9 @@ def robothuman(cards, IP, trialnumber):
     control = input()
     if control == "y": 
         runcard(cards[3], IP, trialnumber)
+    elif control =="q":
+        print("returning to menu")
+        return
 
     print("Ready for card 5,", cards[4])
     runcard(cards[4], IP, trialnumber)
@@ -228,7 +231,13 @@ def followcard(card, IP, trialnumber):
     print("\n Press enter to move to start position")
     input()
     trajectory = arm.move_to_joint_pose(startposition)
-    gripper.close()
+    print("y to open gripper, any other key to continue")
+    control = input()
+    if control == "y":
+        gripper.open()
+        print("enter to close gripper")
+        input()
+        gripper.close()
     hl.robotspeak("I am ready")
     # start cameras
 
@@ -237,6 +246,7 @@ def followcard(card, IP, trialnumber):
     # setup ROSBAG every time you make a new file
     # topicslist is a list of strings of topics
     # rosbags is the directory where they will go
+
     rosbags = "rosbags"
     topicslist = ["/joint_states"]
     recorder = RosbagRecorder(rosbags, topicslist)
@@ -244,7 +254,8 @@ def followcard(card, IP, trialnumber):
     recorder.filename = os.path.join(rosbags, trialnumber, cardprefix)
     # start IMU
     hl.IMUcontrol("http://"+IP, 1)
-        
+
+    print("starting recorder")    
     recorder.start()    
     print("Starting force control mode")
     hl.robotspeak("We can begin")
@@ -263,7 +274,12 @@ def followcard(card, IP, trialnumber):
         
 def runcard(cardname, IP, trialnumber):
     # start the cameras recording
-    
+    startposition = [4.721493795519453,4.448460661610131,-0.016183561810626166,1.5199463284150871,3.0829157579242956,4.517873824894174,0]
+    arm.set_velocity(.7)
+    print("\n Press enter to move to start position")
+    input()
+    trajectory = arm.move_to_joint_pose(startposition)
+    gripper.open()
     # 
     hl.robotspeak("I am ready")
     print("Enter to start the task when the participant is ready")
@@ -279,8 +295,12 @@ def runcard(cardname, IP, trialnumber):
     
     # start IMU
     hl.IMUcontrol("http://"+IP, 1)
+    # start recorder
+    print("starting the recorder")
+    recorder.start()
+    print("started the recorder")
     # start trajectory
-    print("trajectorypickles/"+cardname)
+    print("executing trajectorypickles/"+cardname)
     hl.execute_motion_plan("trajectorypickles/"+cardname)
 
     hl.IMUcontrol("http://"+IP, 0) # stops the IMU

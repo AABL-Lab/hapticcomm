@@ -30,7 +30,7 @@ import requests
 
 def IMUcontrol(url,startstop):
     #requests.get('http://127.0.0.1/foo.php', headers={'host': 'example.com'})
-    timeout = 60
+    timeout = 10
     if startstop==1: #start
         print(url+"/IMU_on")
         tryagain = True
