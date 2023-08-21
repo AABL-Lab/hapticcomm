@@ -27,22 +27,35 @@ import sys
 # for controlling the IMU
 import requests
 
+
 def IMUcontrol(url,startstop):
     #requests.get('http://127.0.0.1/foo.php', headers={'host': 'example.com'})
     timeout = 60
     if startstop==1: #start
         print(url+"/IMU_on")
-        try:
-            r = requests.get(url+"/IMU_on", headers={'host': 'IMUcontrol.com'}, timeout=timeout)
-            print("IMU on requested")
-        except:
-            print("timed out, check that server is running")
+        tryagain = True
+        while tryagain:
+            try:
+                r = requests.get(url+"/IMU_on", headers={'host': 'IMUcontrol.com'}, timeout=timeout)
+                print("IMU on requested")
+                tryagain = False
+            except Exception as error:
+                print("error:", error)
+                print("try again?")
+                control = input()
+                if control == "y":
+                    tryagain = True
+                else:
+                    tryagain = False
+
+
     elif startstop==0: # stop
         try:
             r = requests.get(url+"/IMU_off", headers={'host': 'IMUcontrol.com'}, timeout=timeout)
             print("IMU off requested")
-        except:
-            print("timed out, check that the server is running")
+        except Exception as error:
+            print("error:", error)
+
 
 
 def getIMUdata(url, filename):
@@ -111,7 +124,11 @@ def create_trajectory_from_waypoints(filename="waypoints.csv"):
     except:
         print("No such file name", filename)
         return
-    jointnames = ["j2s7s300_joint_1", "j2s7s300_joint_2", "j2s7s300_joint_3", "j2s7s300_joint_4", "j2s7s300_joint_5", "j2s7s300_joint_6", "j2s7s300_joint_7"]    
+    jointnames = ["j2s7s300_joint_1", "j2s7s300_joint_2", "j2s7s300_joint_3", "j2s7s300_joint_4", "j2s7s300_joint_5", "j2s7s300_joint_6", "j2s7s300_joint_7"]
+    # set velocity so for playback - can not be changed at run
+    print("Set velocity (0-1, .2 is default)")
+    velset = float(input())
+    arm.set_velocity(velset)
 
     print("Select the points to use in the trajectory")
     positionname_list = []
@@ -277,7 +294,7 @@ if __name__=="__main__":
     while quitcatch ==False:
         print("\n\n\n\n")	
         print("This is a library file but here are some things to test\n")
-        print("1: gather waypoints\n 2: make trajectory from waypoints\n 3:plan path and move to named waypoint\n 4: load a saved plan \n 5: say something \n g: change gripper status\n free: force control mode \n lock: stop force control mode \n IMU: start and stop recording \nq: exit")
+        print("1: gather waypoints\n 2: make trajectory from waypoints\n 3:plan path and move to named waypoint\n 4: load a saved plan \n 5: say something \n g: change gripper status\n free: force control mode \n lock: stop force control mode \n IMU: start and stop recording \n speed: set arm motion speed \nq: exit")
         menuchoice = input()	
         if menuchoice =="1": 
             print("Gathering waypoints.  Enter filename (or enter to default to waypoints.csv)")
@@ -302,7 +319,7 @@ if __name__=="__main__":
             # point is validated, let's go
 #            print("Set arm speed 0-1, default is .2")
 #            velocity = float(input())
-            arm.set_velocity(.5)
+#            arm.set_velocity(.5)
             print("\n Moving to", jointposition)
             trajectory = arm.move_to_joint_pose(jointposition)
             print("Arm moved to waypoint", jointposition)
@@ -313,7 +330,7 @@ if __name__=="__main__":
             print(options)
             print("Choose the filename (from trajectorypickles) for the trajectory you want to run")
             planfilename = input()
-            
+            # velocity is set when you create the pickle
             execute_motion_plan("trajectorypickles/"+planfilename)
 
             
@@ -351,7 +368,17 @@ if __name__=="__main__":
             elif control == "1":
                 print("Sending start to", URL)
                 IMUcontrol(URL, 1)
-
             else:
                 pass
+        elif menuchoice =="speed":
+            print("Set the arm speed, 0-1")
+            speed=float(input())
+            arm.set_velocity(speed)
+        elif menuchoice =="tm":
+            robotspeak("Hello, my name is Boop")
+            # move at the same time
+        else:
+            pass
                 
+
+        
