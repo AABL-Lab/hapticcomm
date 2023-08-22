@@ -175,7 +175,7 @@ def create_trajectory_from_waypoints(filename="waypoints.csv"):
     
     print("Generating trajectories from waypoints:\n")
     print("waypoint list is ", waypointlist, "\n")
-    arm.set_velocity(.5)
+
     trajectory = arm.plan_joint_waypoints(waypointlist)
        
     # now save the trajectory out to a file so we can load it later
@@ -317,9 +317,9 @@ if __name__=="__main__":
         elif menuchoice=="3":
             jointposition = select_waypoint()
             # point is validated, let's go
-#            print("Set arm speed 0-1, default is .2")
-#            velocity = float(input())
-#            arm.set_velocity(.5)
+            print("Set arm speed 0-1, default is .2")
+            velocity = float(input())
+            arm.set_velocity(velocity)
             print("\n Moving to", jointposition)
             trajectory = arm.move_to_joint_pose(jointposition)
             print("Arm moved to waypoint", jointposition)

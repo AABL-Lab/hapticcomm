@@ -77,7 +77,7 @@ def setup_experiment():
 #        print("No such file name",filename)
 
 
-def humanhuman(cards, IP):
+def humanhuman(cards, IP, trialnumber):
     # Start human-human trial        
     # Start upper and side camera
     
@@ -137,9 +137,9 @@ def humanhuman(cards, IP):
 def robothuman(cards, IP, trialnumber):
     # Introduce robot
     hl.robotspeak("Hello, my name is Boop")
-
     hl.execute_motion_plan("trajectorypickles/home2start.pkl")
-    time.sleep(5)
+    print("press enter to start the practice task")
+    step = input()
     runcard("triangle.pkl", IP, trialnumber)
 
     practice = True
@@ -279,9 +279,11 @@ def runcard(cardname, IP, trialnumber):
     print("\n Press enter to move to start position")
     input()
     trajectory = arm.move_to_joint_pose(startposition)
-    gripper.open()
-    # 
+    gripper.open() 
     hl.robotspeak("I am ready")
+    print("enter to close gripper")
+    input()
+    gripper.close()
     print("Enter to start the task when the participant is ready")
     input()
     # setup ROSBAG every time you make a new file
