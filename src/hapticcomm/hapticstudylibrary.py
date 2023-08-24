@@ -53,6 +53,8 @@ def IMUcontrol(url,startstop):
         try:
             r = requests.get(url+"/IMU_off", headers={'host': 'IMUcontrol.com'}, timeout=timeout)
             print("IMU off requested")
+            # it would be nice to do getIMUdata here, but not currently working
+            
         except Exception as error:
             print("error:", error)
 

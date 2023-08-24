@@ -70,7 +70,7 @@ def setup_experiment():
             # just this experiment's cards
             card_dictionary = cardsorts[experimentnumber]
             cards = list(card_dictionary.values()) 
-            print("This experiment's cards are, ", cards)
+            print("\n\n\nThis experiment's cards are, ", cards)
             return cards, IP
     except Exception as error:
         print(error)
@@ -109,7 +109,8 @@ def humanhuman(cards, IP, trialnumber):
         
     
         # stop IMU, trial 1 finished
-        
+        print("\n\n\n\nTell the participants to do one question of the survey now\n\n\n press enter when they are done")
+        control = input()
         # start IMU, allow participants to begin card 2
         print("Ready to start card 2 now, ", cards[1])
         startstopIMU = input()
@@ -120,6 +121,8 @@ def humanhuman(cards, IP, trialnumber):
         startstopIMU = input()
         # stop IMU, trial 2 finished
         hl.IMUcontrol("http://"+IP, 0)
+        print("\n\n\n\nTell the participants to do one question of the survey now\n\n\n press enter when they are done")
+        control = input()
 
         
         print("Ready to start card 3 ", cards[2])
@@ -132,6 +135,8 @@ def humanhuman(cards, IP, trialnumber):
         startstopIMU = input()
         # stop IMU, trial 3 finished
         hl.IMUcontrol("http://"+IP, 0)
+        print("\n\n\n\nTell the participants to do one question of the survey now\n\n\n press enter when they are done")
+        control = input()
         
 
 def robothuman(cards, IP, trialnumber):
@@ -160,7 +165,7 @@ def robothuman(cards, IP, trialnumber):
             print("control input was", ctrl,"try again")
             
     # moving on the new cards
-    print("Ready for card 4,", cards[3])
+    print("\n\n\nReady for card 4,", cards[3])
     runcard(cards[3], IP, trialnumber)
     print("Repeat card? y to repeat, q to return to menu, anything else to continue to next card")
     control = input()
@@ -170,11 +175,27 @@ def robothuman(cards, IP, trialnumber):
         print("returning to menu")
         return
 
-    print("Ready for card 5,", cards[4])
+    print("\n\n\nReady for card 5,", cards[4])
     runcard(cards[4], IP, trialnumber)
+    print("Repeat card? y to repeat, q to return to menu, anything else to continue to next card")
+    control = input()
+    if control == "y": 
+        runcard(cards[4], IP, trialnumber)
+    elif control =="q":
+        print("returning to menu")
+        return
 
-    print("Ready for last card", cards[5])
+
+    print("\n\n\nReady for last card", cards[5])
     runcard(cards[5], IP, trialnumber)
+    print("Repeat card? y to repeat, q to return to menu, anything else to continue to next card")
+    control = input()
+    if control == "y": 
+        runcard(cards[5], IP, trialnumber)
+    elif control =="q":
+        print("returning to menu")
+        return
+
 
     print("Enter to open gripper to put down tray")
     input()
@@ -195,7 +216,7 @@ def humanleader(cards, IP, trialnumber):
     gripper.close()
 
     
-    print("Ready for test card")
+    print("\n\n\n Ready for test card")
     followcard("triangle.pkl", IP, trialnumber)
     practice = True
     while practice:
@@ -211,20 +232,46 @@ def humanleader(cards, IP, trialnumber):
             print("done with practice")
             
     
-    print("Ready for card 4,", cards[3])
+    print("\n\n\nReady for card 4,", cards[3])
     followcard(cards[3], IP, trialnumber)
+    print("Repeat card? y to repeat, q to return to menu, anything else to continue to next card")
+    control = input()
+    if control == "y": 
+        followcard(cards[3], IP, trialnumber)
+    elif control =="q":
+        print("returning to menu")
+        return
 
-    print("Ready for card 5,", cards[4])
+
+    print("\n\n\n Ready for card 5,", cards[4])
     followcard(cards[4], IP, trialnumber)
+    print("Repeat card? y to repeat, q to return to menu, anything else to continue to next card")
+    control = input()
+    if control == "y": 
+        followcard(cards[4], IP, trialnumber)
+    elif control =="q":
+        print("returning to menu")
+        return
 
-    print("Ready for last card", cards[5])
+
+    print("\n\n\n Ready for last card", cards[5])
     followcard(cards[5], IP, trialnumber)
+    print("Repeat card? y to repeat, q to return to menu, anything else to continue to next card")
+    control = input()
+    if control == "y": 
+        followcard(cards[5], IP, trialnumber)
+    elif control =="q":
+        print("returning to menu")
+        return
+
 
     print("Enter to open gripper to put down tray")
     input()
     gripper.open()
     hl.robotspeak("Thank you for participating in our study! Goodbye!")
-
+    hl.execute_motion_plan("trajectorypickles/start2home.pkl")
+    print("Leader participant complete")
+    
 def followcard(card, IP, trialnumber):
     startposition = [4.721493795519453,4.448460661610131,-0.016183561810626166,1.5199463284150871,3.0829157579242956,4.517873824894174,0]
     arm.set_velocity(.7)
