@@ -27,6 +27,12 @@ import sys
 # for controlling the IMU
 import requests
 
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        return False
 
 def IMUcontrol(url,startstop):
     #requests.get('http://127.0.0.1/foo.php', headers={'host': 'example.com'})
@@ -130,6 +136,7 @@ def create_trajectory_from_waypoints(filename="waypoints.csv"):
     # set velocity so for playback - can not be changed at run
     print("Set velocity (0-1, .2 is default)")
     velset = float(input())
+    
     arm.set_velocity(velset)
 
     print("Select the points to use in the trajectory")
@@ -320,7 +327,12 @@ if __name__=="__main__":
             jointposition = select_waypoint()
             # point is validated, let's go
             print("Set arm speed 0-1, default is .2")
-            velocity = float(input())
+            try:
+                velocity = float(input())
+                print("velocity is ",str(velocity))
+            except:
+                velocity = .2
+                print("velocity is .2")
             arm.set_velocity(velocity)
             print("\n Moving to", jointposition)
             trajectory = arm.move_to_joint_pose(jointposition)
