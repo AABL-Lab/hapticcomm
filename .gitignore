@@ -3,3 +3,4 @@ IMU-processing-code/copy-to-RP2040/secrets.py
 *.mpy
 .DS_Store
 *~
+*.pyc
