@@ -30,7 +30,7 @@ import sys
 import requests
 import time
 from study_runner.frames.loggers.rosbag_recorder import RosbagRecorder
-
+import forcetorquecontrol
 
 def setup_experiment():
 # Set up experiment            
@@ -53,10 +53,10 @@ def setup_experiment():
     print("Directory '%s' created" %trialnumber)
 
     # set IP address for IMU
-    print("Enter IP or just enter for default (10.5.0.6)")
+    print("Enter IP or just enter for default (10.5.13.115)")
     IPentry = str(input())
     if IPentry =="":
-        IP = "10.5.0.6"
+        IP = "10.5.13.115"
     else:
         IP = IPentry
         
@@ -273,7 +273,8 @@ def humanleader(cards, IP, trialnumber):
     print("Leader participant complete")
     
 def followcard(card, IP, trialnumber):
-    startposition = [4.721493795519453,4.448460661610131,-0.016183561810626166,1.5199463284150871,3.0829157579242956,4.517873824894174,0]
+    startposition = [4.893838134935058,4.329972363654761,6.189536312711386,1.378786273783764,3.1896557870468887,4.554054998831773,1.70721954995335]
+
     arm.set_velocity(.7)
     print("\n Press enter to move to start position")
     input()
@@ -304,9 +305,9 @@ def followcard(card, IP, trialnumber):
 
     print("starting recorder")    
     recorder.start()    
-    print("Starting force control mode")
+    print("Starting forcetorquecontrol mode")
     hl.robotspeak("We can begin")
-    arm.start_force_control()
+    ft_controller = forcetorquecontrol.ForceTorqueController()
 
 
     print("press enter when the participant is done")
@@ -315,8 +316,8 @@ def followcard(card, IP, trialnumber):
     hl.IMUcontrol("http://"+IP, 0)
     # stop ROSBAG
     recorder.stop() # stops the rosbag
-    arm.stop_force_control()
-    print("Force control stopped, card done")
+    
+    print("Forcetorquecontrol stopped, card done")
     
         
 def runcard(cardname, IP, trialnumber):
@@ -368,7 +369,7 @@ if __name__ == "__main__":
     os.chdir(hcpath)
     defaultcard = ['M.pkl', 'jetski.pkl', 'pentagon.pkl', 'parasail.pkl', 'st.pkl', 'beaker.pkl']
     cards = defaultcard
-    IP = "10.5.0.6"
+    IP = "10.5.13.115"
     trialnumber = "test"
     quitcatch = False
     while quitcatch ==False:
