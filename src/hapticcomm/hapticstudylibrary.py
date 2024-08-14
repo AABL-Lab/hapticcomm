@@ -26,6 +26,8 @@ import hlpr_dialogue_production.msg as dialogue_msgs
 import sys
 # for controlling the IMU
 import requests
+import forcetorquecontrol.forcetorquecontrol as ft
+
 
 def is_number(s):
     try:
@@ -121,7 +123,7 @@ def predownload_speech():
 
 
     
-def create_trajectory_from_waypoints(filename="waypoints.csv"):
+def create_trajectory_from_waypoints(filename="waypoints.csv", arm=None):
     # filename should be a CSV file, formatted like waypointgathering.py
     print("Loading waypoints from", filename)
 
@@ -284,10 +286,7 @@ def select_waypoint():
                     print(positionname_list)
     return jointposition
         
-
-
-                        
-if __name__=="__main__":
+def main():
     # these need to be done exactly once across all files
     rospy.init_node('hapticcomm')
     arm = armpy.arm.Arm()
@@ -296,10 +295,12 @@ if __name__=="__main__":
     rospack = rospkg.RosPack()
     rospack.list()
     hcpath = rospack.get_path('hapticcomm')
-    print(hcpath, "is the path used for hapticcomm")
+    #print(hcpath, "is the path used for hapticcomm")
     os.chdir(hcpath)
+    ft_controller = ft.ForceTorqueController()
     
     quitcatch = False
+
     while quitcatch ==False:
         print("\n\n\n\n")	
         print("This is a library file but here are some things to test\n")
@@ -316,9 +317,9 @@ if __name__=="__main__":
             print("making trajectory from waypoints. Enter filename or enter for default (waypoints.csv)")
             filename = input()
             if len(filename)==0:
-                create_trajectory_from_waypoints()
+                create_trajectory_from_waypoints(arm=arm)
             else:        
-                create_trajectory_from_waypoints(filename)
+                create_trajectory_from_waypoints(filename, arm=arm)
         elif menuchoice =="q":
             print("exiting")
             quitcatch = True
@@ -345,8 +346,10 @@ if __name__=="__main__":
             print("Choose the filename (from trajectorypickles) for the trajectory you want to run")
             planfilename = input()
             # velocity is set when you create the pickle
-            execute_motion_plan("trajectorypickles/"+planfilename)
-
+            try:
+                execute_motion_plan("trajectorypickles/"+planfilename)
+            except:
+                print("issue with motion plan, try again")
             
         elif menuchoice=="5":
             print("Text to speak?\n")
@@ -364,12 +367,13 @@ if __name__=="__main__":
                 pass
 
         elif menuchoice == "free":
-            print("Starting force control mode")
-            arm.start_force_control()
+            print("Starting bota force control mode")
+
+            ft_controller.start()
             
         elif menuchoice == "lock":
             print("Stop force control mode")
-            arm.stop_force_control()
+            ft_controller.stop()
 
         elif menuchoice =="IMU":
             print("1: start, 0: stop, anything else: go back")
@@ -395,4 +399,9 @@ if __name__=="__main__":
             pass
                 
 
-        
+
+
+
+                        
+if __name__=="__main__":
+    main()
