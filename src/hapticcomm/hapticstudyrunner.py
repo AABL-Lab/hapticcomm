@@ -117,7 +117,7 @@ def humanhuman(cards, IP, trialnumber):
         #start the IMU 
         hl.IMUcontrol("http://"+IP, 1)
         
-        print("IMU started, begin card 1 now \n press any key to stop IMU")
+        print("IMU started, begin card 2 now \n press any key to stop IMU")
         startstopIMU = input()
         # stop IMU, trial 2 finished
         hl.IMUcontrol("http://"+IP, 0)

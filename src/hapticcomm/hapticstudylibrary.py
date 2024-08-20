@@ -4,7 +4,7 @@
 # kat.allen@tufts.edu
 try:
     from hapticcomm import waypointgathering
-except:
+except ImportException:
     import waypointgathering
 from boto3 import Session
 from botocore.exceptions import BotoCoreError, ClientError
@@ -47,7 +47,7 @@ def IMUcontrol(url,startstop):
                 r = requests.get(url+"/IMU_on", headers={'host': 'IMUcontrol.com'}, timeout=timeout)
                 print("IMU on requested")
                 tryagain = False
-            except Exception as error:
+            except requests.RequestException as error:
                 print("error:", error)
                 print("try again?")
                 control = input()
