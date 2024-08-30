@@ -4,9 +4,9 @@
 # kat.allen@tufts.edu
 try:
     from hapticcomm import waypointgathering
-except ImportException:
+except ImportError:
     import waypointgathering
-from boto3 import Session
+    from boto3 import Session
 from botocore.exceptions import BotoCoreError, ClientError
 from contextlib import closing
 import os
@@ -63,7 +63,7 @@ def IMUcontrol(url,startstop):
             print("IMU off requested")
             # it would be nice to do getIMUdata here, but not currently working
             
-        except Exception as error:
+        except requests.RequestException as error:
             print("error:", error)
 
 
@@ -85,7 +85,7 @@ def getIMUdata(url, filename):
 
         
 
-    except Exception as error:
+    except requests.RequestException as error:
         print("error:", error)
 
  
@@ -297,7 +297,8 @@ def main():
     hcpath = rospack.get_path('hapticcomm')
     #print(hcpath, "is the path used for hapticcomm")
     os.chdir(hcpath)
-    ft_controller = ft.ForceTorqueController()
+    ft_controller = ft.ForceTorqueController(controltype="PD",
+                                               K_P=-400.0, K_D=50.0)
     
     quitcatch = False
 
@@ -394,7 +395,7 @@ def main():
             arm.set_velocity(speed)
         elif menuchoice =="tm":
             robotspeak("Hello, my name is Boop")
-            # move at the same time
+            # move at the same time FIXME
         else:
             pass
                 

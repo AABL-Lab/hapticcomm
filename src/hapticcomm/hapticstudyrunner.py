@@ -63,18 +63,18 @@ def setup_experiment():
     # get order of cards from prerandomized set experiment_card_order.txt
     try:
         filename = "/home/katallen/catkin_ws/src/hapticcomm/experiment_card_order.txt"
-        #filename ="experiment_card_order.txt"
+        cardset = experimentnumber % 6
+        print("Using Card Set", cardset)
         with open(filename, 'r') as f:
             filelist = csv.DictReader(f)    
             cardsorts = [row for row in filelist] #all the card orders
             # just this experiment's cards
-            card_dictionary = cardsorts[experimentnumber]
+            card_dictionary = cardsorts[cardset-1]
             cards = list(card_dictionary.values()) 
             print("\n\n\nThis experiment's cards are, ", cards)
             return cards, IP
-    except Exception as error:
-        print(error)
-#        print("No such file name",filename)
+    except:
+        exit
 
 
 def humanhuman(cards, IP, trialnumber):
@@ -371,6 +371,8 @@ if __name__ == "__main__":
     cards = defaultcard
     IP = "10.5.13.115"
     trialnumber = "test"
+
+
     quitcatch = False
     while quitcatch ==False:
         print("\n\n\n\n")	
