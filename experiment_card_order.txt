@@ -1,7 +1,7 @@
 hhcard1,hhcard2,hhcard3,hrcard1,hrcard2,hrcard3
-pentagon.pkl,beaker.pkl,parasail.pkl,jetski.pkl,E,M.pkl
-beaker.pkl,jetski.pkl,pentagon.pkl,M.pkl,parasail.pkl,E
-jetski.pkl,M.pkl,beaker.pkl,E,pentagon.pkl,parasail.pkl
-M.pkl,E,jetski.pkl,parasail.pkl,beaker.pkl,pentagon.pkl
-E,parasail.pkl,M.pkl,pentagon.pkl,jetski.pkl,beaker.pkl
-parasail.pkl,pentagon.pkl,E,beaker.pkl,M.pkl,jetski.pkl
+pentagon.pkl,beaker.pkl,parasail.pkl,jetski.pkl,dt.pkl,M.pkl
+beaker.pkl,jetski.pkl,pentagon.pkl,M.pkl,parasail.pkl,dt.pkl
+jetski.pkl,M.pkl,beaker.pkl,dt.pkl,pentagon.pkl,parasail.pkl
+M.pkl,dt.pkl,jetski.pkl,parasail.pkl,beaker.pkl,pentagon.pkl
+dt.pkl,parasail.pkl,M.pkl,pentagon.pkl,jetski.pkl,beaker.pkl
+parasail.pkl,pentagon.pkl,dt.pkl,beaker.pkl,M.pkl,jetski.pkl

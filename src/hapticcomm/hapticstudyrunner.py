@@ -30,28 +30,35 @@ import sys
 import requests
 import time
 from study_runner.frames.loggers.rosbag_recorder import RosbagRecorder
-import forcetorquecontrol
+import forcetorquecontrol.forcetorquecontrol as ft
 
 def setup_experiment():
 # Set up experiment            
     # set experiment number
-    print("Experiment Number:")
-    try:
-        experimentnumber = int(input())
-    except:
-        print("Experiment Number (integer)")
-        experimentnumber = int(input())
-        # create folder for IMU and rosbag data for this trial
+    experimentnumber=""
+    while not experimentnumber=="q":
+        print("Experiment Number:")
+        try:
+            experimentnumber = int(input())
+        except:
+            print("Experiment Number (integer)")
+            experimentnumber = int(input())
+            # create folder for IMU and rosbag data for this trial
     
-    trialnumber = experimentnumber
+        trialnumber = experimentnumber
 
-    #make a directory for the trial os.makedirs()
-    parent_dir = "/home/katallen/catkin_ws/src/hapticcomm/rosbags/"
-    newdir = str(trialnumber)
-    path = os.path.join(parent_dir, newdir)
-    os.makedirs(path)
-    print("Directory '%s' created" %trialnumber)
+        #make a directory for the trial os.makedirs()
+        parent_dir = "/home/katallen/catkin_ws/src/hapticcomm/rosbags/"
+        try:
+            newdir = str(trialnumber)
+            path = os.path.join(parent_dir, newdir)
+            os.makedirs(path)
+            print("Directory '%s' created" %trialnumber)
+            experimentnumber="q"
+        except FileExistsError:
+            print("Directory '%s' already exists" %trialnumber)
 
+        
     # set IP address for IMU
     print("Enter IP or just enter for default (10.5.13.115)")
     IPentry = str(input())
@@ -78,8 +85,7 @@ def setup_experiment():
         exit
 
     ft_controller = ft.ForceTorqueController(controltype="PD",
-                                               K_P=-30.0, K_D=-3.0, threshold=3.
-
+                                        K_P=-30.0, K_D=-3.0, threshold=3.0)
     print("Force torque controller follow mode ready")
 
 def humanhuman(cards, IP, trialnumber):
@@ -279,7 +285,6 @@ def humanleader(cards, IP, trialnumber):
     
 def followcard(card, IP, trialnumber):
     startposition = [4.893838134935058,4.329972363654761,6.189536312711386,1.378786273783764,3.1896557870468887,4.554054998831773,1.70721954995335]
-
     arm.set_velocity(.7)
     print("\n Press enter to move to start position")
     input()
@@ -328,7 +333,7 @@ def followcard(card, IP, trialnumber):
         
 def runcard(cardname, IP, trialnumber):
     # start the cameras recording
-    hapticstudyrunner.select_waypoint()
+    startposition=[1.5920214543667193,1.866893900482904,2.802151733686583,1.527687738229784,6.1766950825672415,1.807115121916386,-1.1973379181817223]
     arm.set_velocity(.7)
     print("\n Press enter to move to start position")
     input()
@@ -344,7 +349,7 @@ def runcard(cardname, IP, trialnumber):
     # topicslist is a list of strings of topics
     # rosbags is the directory where they will go
     rosbags = "rosbags"
-    topicslist = ["/joint_states", "/j2s7s300_driver/in/cartesian_force","/j2s7s300_driver/in/cartesian_velocity", "/ft_sensor/ft_compensated", "/bota/ft_sensor0/ft_sensor_readings/wrench", "/bota/ft_sensor0/ft_sensor_readings/imu"]
+    topicslist = ["/joint_states", "/j2s7s300_driver/out/cartesian_command","/j2s7s300_driver/in/cartesian_velocity", "/ft_sensor/ft_compensated", "/bota/ft_sensor0/ft_sensor_readings/wrench", "/bota/ft_sensor0/ft_sensor_readings/imu"]
     recorder = RosbagRecorder(rosbags, topicslist)
     cardprefix, _ = os.path.splitext(cardname)
     recorder.filename = os.path.join(rosbags, trialnumber, cardprefix)
