@@ -328,7 +328,7 @@ def followcard(card, IP, trialnumber):
         
 def runcard(cardname, IP, trialnumber):
     # start the cameras recording
-    hapticstudyrunner.select_waypoint()
+    
     arm.set_velocity(.7)
     print("\n Press enter to move to start position")
     input()
