@@ -36,7 +36,8 @@ def setup_experiment():
 # Set up experiment            
     # set experiment number
     experimentnumber=""
-    while not experimentnumber=="q":
+    got_experimentnumber=False
+    while not got_experimentnumber:
         print("Experiment Number:")
         try:
             experimentnumber = int(input())
@@ -54,11 +55,11 @@ def setup_experiment():
             path = os.path.join(parent_dir, newdir)
             os.makedirs(path)
             print("Directory '%s' created" %trialnumber)
-            experimentnumber="q"
+            got_experimentnumber=True
         except FileExistsError:
             print("Directory '%s' already exists" %trialnumber)
 
-        
+
     # set IP address for IMU
     print("Enter IP or just enter for default (10.5.13.115)")
     IPentry = str(input())
@@ -71,6 +72,7 @@ def setup_experiment():
     try:
         filename = "/home/katallen/catkin_ws/src/hapticcomm/experiment_card_order.txt"
         cardset = experimentnumber % 6
+        print("cardset is ", cardset)
         print("Using Card Set", cardset)
         with open(filename, 'r') as f:
             filelist = csv.DictReader(f)    
@@ -79,15 +81,13 @@ def setup_experiment():
             card_dictionary = cardsorts[cardset-1]
             cards = list(card_dictionary.values()) 
             print("\n\n\nThis experiment's cards are, ", cards)
-            return cards, IP
-    except:
-        print("cards not set")
+            return trialnumber, cards, IP
+    except Exception as e: 
+        print("cards not set, ", e)
         exit
 
-    ft_controller = ft.ForceTorqueController(controltype="PD",
-                                        K_P=-30.0, K_D=-3.0, threshold=3.0)
-    print("Force torque controller follow mode ready")
 
+    
 def humanhuman(cards, IP, trialnumber):
     # Start human-human trial        
     # Start upper and side camera
@@ -152,10 +152,11 @@ def humanhuman(cards, IP, trialnumber):
 
 def robothuman(cards, IP, trialnumber):
     # Introduce robot
-    hl.robotspeak("Hello, my name is Boop")
+    hl.robotspeak("Hello, my name is Beep")
     hl.execute_motion_plan("trajectorypickles/home2start.pkl")
     print("press enter to start the practice task")
     step = input()
+    print("trialnumber",trialnumber)
     runcard("triangle.pkl", IP, trialnumber)
 
     practice = True
@@ -176,9 +177,9 @@ def robothuman(cards, IP, trialnumber):
             print("control input was", ctrl,"try again")
             
     # moving on the new cards
-    print("\n\n\nReady for card 4,", cards[3])
+    print("\n\n\nReady for card,", cards[3])
     runcard(cards[3], IP, trialnumber)
-    print("Repeat card? y to repeat, q to return to menu, anything else to continue to next card")
+    print("Repeat card? y to repeat, q to return to menu, anything else to continue to next card \n Don't forget to have them do the survey question!")
     control = input()
     if control == "y": 
         runcard(cards[3], IP, trialnumber)
@@ -186,9 +187,9 @@ def robothuman(cards, IP, trialnumber):
         print("returning to menu")
         return
 
-    print("\n\n\nReady for card 5,", cards[4])
+    print("\n\n\nReady for card,", cards[4])
     runcard(cards[4], IP, trialnumber)
-    print("Repeat card? y to repeat, q to return to menu, anything else to continue to next card")
+    print("Repeat card? y to repeat, q to return to menu, anything else to continue to next card \n Don't forget to have them do the survey question!")
     control = input()
     if control == "y": 
         runcard(cards[4], IP, trialnumber)
@@ -199,7 +200,7 @@ def robothuman(cards, IP, trialnumber):
 
     print("\n\n\nReady for last card", cards[5])
     runcard(cards[5], IP, trialnumber)
-    print("Repeat card? y to repeat, q to return to menu, anything else to continue to next card")
+    print("Repeat card? y to repeat, q to return to menu, anything else to continue to next card \n Don't forget to have them do the survey question!")
     control = input()
     if control == "y": 
         runcard(cards[5], IP, trialnumber)
@@ -220,12 +221,12 @@ def robothuman(cards, IP, trialnumber):
 def humanleader(cards, IP, trialnumber): 
     # LEADER PARTICIPANT
 # Introduce robot
-    hl.robotspeak("Hello, my name is Boop")
-
+    hl.robotspeak("Hello, my name is Beep")
     hl.execute_motion_plan("trajectorypickles/home2start.pkl")
     time.sleep(5)
+    print("press enter to close the gripper")
+    input()
     gripper.close()
-
     
     print("\n\n\n Ready for test card")
     followcard("triangle.pkl", IP, trialnumber)
@@ -245,7 +246,7 @@ def humanleader(cards, IP, trialnumber):
     
     print("\n\n\nReady for card 4,", cards[3])
     followcard(cards[3], IP, trialnumber)
-    print("Repeat card? y to repeat, q to return to menu, anything else to continue to next card")
+    print("Repeat card? y to repeat, q to return to menu, anything else to continue to next card \n Don't forget to have them do the survey question!")
     control = input()
     if control == "y": 
         followcard(cards[3], IP, trialnumber)
@@ -256,7 +257,7 @@ def humanleader(cards, IP, trialnumber):
 
     print("\n\n\n Ready for card 5,", cards[4])
     followcard(cards[4], IP, trialnumber)
-    print("Repeat card? y to repeat, q to return to menu, anything else to continue to next card")
+    print("Repeat card? y to repeat, q to return to menu, anything else to continue to next card \n Don't forget to have them do the survey question!")
     control = input()
     if control == "y": 
         followcard(cards[4], IP, trialnumber)
@@ -267,7 +268,7 @@ def humanleader(cards, IP, trialnumber):
 
     print("\n\n\n Ready for last card", cards[5])
     followcard(cards[5], IP, trialnumber)
-    print("Repeat card? y to repeat, q to return to menu, anything else to continue to next card")
+    print("Repeat card? y to repeat, q to return to menu, anything else to continue to next card\n Don't forget to have them do the survey question!")
     control = input()
     if control == "y": 
         followcard(cards[5], IP, trialnumber)
@@ -284,11 +285,6 @@ def humanleader(cards, IP, trialnumber):
     print("Leader participant complete")
     
 def followcard(card, IP, trialnumber):
-    startposition = [4.893838134935058,4.329972363654761,6.189536312711386,1.378786273783764,3.1896557870468887,4.554054998831773,1.70721954995335]
-    arm.set_velocity(.7)
-    print("\n Press enter to move to start position")
-    input()
-    trajectory = arm.move_to_joint_pose(startposition)
     print("y to open gripper, any other key to continue")
     control = input()
     if control == "y":
@@ -310,7 +306,7 @@ def followcard(card, IP, trialnumber):
 
     recorder = RosbagRecorder(rosbags, topicslist)
     cardprefix, _ = os.path.splitext(card)
-    recorder.filename = os.path.join(rosbags, trialnumber, cardprefix)
+    recorder.filename = os.path.join(rosbags, str(trialnumber), cardprefix)
     # start IMU
     hl.IMUcontrol("http://"+IP, 1)
 
@@ -328,16 +324,14 @@ def followcard(card, IP, trialnumber):
     # stop ROSBAG
     recorder.stop() # stops the rosbag
     ft_controller.stop()
-    print("Forcetorquecontrol stopped, card done")
+    print("Forcetorquecontrol stopped, card done. Press enter to open the gripper")
+    input()
+    gripper.open()
     
         
 def runcard(cardname, IP, trialnumber):
-    # start the cameras recording
-    startposition=[1.5920214543667193,1.866893900482904,2.802151733686583,1.527687738229784,6.1766950825672415,1.807115121916386,-1.1973379181817223]
-    arm.set_velocity(.7)
-    print("\n Press enter to move to start position")
+    print("y to move to start, enter to open the gripper")
     input()
-    trajectory = arm.move_to_joint_pose(startposition)
     gripper.open() 
     hl.robotspeak("I am ready")
     print("enter to close gripper")
@@ -352,7 +346,7 @@ def runcard(cardname, IP, trialnumber):
     topicslist = ["/joint_states", "/j2s7s300_driver/out/cartesian_command","/j2s7s300_driver/in/cartesian_velocity", "/ft_sensor/ft_compensated", "/bota/ft_sensor0/ft_sensor_readings/wrench", "/bota/ft_sensor0/ft_sensor_readings/imu"]
     recorder = RosbagRecorder(rosbags, topicslist)
     cardprefix, _ = os.path.splitext(cardname)
-    recorder.filename = os.path.join(rosbags, trialnumber, cardprefix)
+    recorder.filename = os.path.join(rosbags, str(trialnumber), cardprefix)
     
     # start IMU
     hl.IMUcontrol("http://"+IP, 1)
@@ -383,6 +377,10 @@ if __name__ == "__main__":
     IP = "10.5.13.115"
     trialnumber = "test"
 
+    ft_controller = ft.ForceTorqueController(controltype="PD",
+                                        K_P=-30.0, K_D=-3.0, threshold=3.0)
+    print("Force torque controller follow mode ready")
+
 
     quitcatch = False
     while quitcatch ==False:
@@ -396,7 +394,7 @@ if __name__ == "__main__":
             quitcatch = True
             exit
         elif menuchoice == "1":
-            cards, IP = setup_experiment()
+            trialnumber, cards, IP = setup_experiment()
 
         elif menuchoice == "2":
             if cards == defaultcard:
