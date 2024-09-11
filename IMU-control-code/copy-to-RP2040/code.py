@@ -70,9 +70,6 @@ while not esp.is_connected:
 print("Connected to", str(esp.ssid, "utf-8"), "\tRSSI:", esp.rssi)
 print("My IP address is", esp.pretty_ip(esp.ip_address))
 
-pool = adafruit_connection_manager.get_radio_socketpool(esp)
-ssl_context = adafruit_connection_manager.get_radio_ssl_context(esp)
-requests = adafruit_requests.Session(pool, ssl_context)
 
 if secrets["ssid"]!="tufts_eecs":
     # now sync with NTP time
@@ -92,8 +89,12 @@ if secrets["ssid"]!="tufts_eecs":
 else:
     try:
         ntp = tufts_ntp.set_ntp_time(esp)
-    except:
-    # manually set the time
+        #ntp = adafruit_ntp.NTP(pool, tz_offset=0)
+        now = ntp.datetime()
+    except Exception as e:
+        #manually set the time
+        print("error:", e)
+        print("Manually setting time")
         now =  time.struct_time((2023, 2, 7, 13, 43, 15, 0, -1, -1))
         rtc.RTC().datetime =  now #time.struct_time((2019, 5, 29, 15, 14, 15, 0, -1, -1))
 

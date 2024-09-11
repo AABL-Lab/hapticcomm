@@ -8,6 +8,7 @@ import busio
 import rtc
 import time
 import adafruit_esp32spi.adafruit_esp32spi_socket as socket
+from adafruit_ntp import NTP
 
 TIMEOUT = 5
 # edit host and port to match server
@@ -28,7 +29,7 @@ def set_ntp_time(esp):
 
     data = b'\x1b' + 47 * b'\0'
     s.connect((HOST, 123))
-    s.send(data) #, (HOST, 123))
+    s.send(data) #, (HOST, PORT))
     data, address = esp.recv(1024)
     if data:
         t = struct.unpack('!12I', data)[10]
