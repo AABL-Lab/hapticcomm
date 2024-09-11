@@ -1,0 +1,9 @@
+Data Analysis Process:
+- trim clips to just show the 20-30 seconds for each trial
+- code with categories
+
+
+board twisted in gripper (follower/leader misalignment)
+moved hands/changed grip
+board tilted "backwards"
+follower moved torso with leader movement/leaned

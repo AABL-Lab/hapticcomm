@@ -7,19 +7,22 @@ and the Adafruit Discord community!
 '''
 
 import board
+import supervisor
 import busio
 from digitalio import DigitalInOut, Direction
-import adafruit_requests as requests
+import adafruit_requests
 import adafruit_esp32spi.adafruit_esp32spi_socket as socket
 import adafruit_esp32spi.adafruit_esp32spi_wsgiserver as wsgi
 from adafruit_esp32spi import adafruit_esp32spi
 import adafruit_esp32spi.adafruit_esp32spi_wsgiserver as server
 from adafruit_wsgi.wsgi_app import WSGIApp
+import adafruit_connection_manager
 import IMU
 import os
 import rtc
 import time
 import struct
+import adafruit_ntp
 import tufts_ntp
 
 # LED setup for onboard LED
@@ -47,7 +50,7 @@ esp32_reset = DigitalInOut(board.ESP_RESET)
 spi = busio.SPI(board.SCK1, board.MOSI1, board.MISO1)
 esp = adafruit_esp32spi.ESP_SPIcontrol(spi, esp32_cs, esp32_ready, esp32_reset)
 
-requests.set_socket(socket, esp)
+adafruit_requests.set_socket(socket, esp)
 
 if esp.status == adafruit_esp32spi.WL_IDLE_STATUS:
     print("ESP32 found and in idle mode")
@@ -67,6 +70,10 @@ while not esp.is_connected:
 print("Connected to", str(esp.ssid, "utf-8"), "\tRSSI:", esp.rssi)
 print("My IP address is", esp.pretty_ip(esp.ip_address))
 
+pool = adafruit_connection_manager.get_radio_socketpool(esp)
+ssl_context = adafruit_connection_manager.get_radio_ssl_context(esp)
+requests = adafruit_requests.Session(pool, ssl_context)
+
 if secrets["ssid"]!="tufts_eecs":
     # now sync with NTP time
     TZ_OFFSET = 3600 * 2
@@ -83,12 +90,19 @@ if secrets["ssid"]!="tufts_eecs":
     while not try_set_time(esp, TZ_OFFSET):
         time.sleep(0.01)
 else:
-    tufts_ntp.set_ntp_time(esp)
-# manually set the time
-#timenow =  time.struct_time((2023, 2, 7, 13, 43, 15, 0, -1, -1))
-r = rtc.RTC()
-#r.datetime =  timenow #time.struct_time((2019, 5, 29, 15, 14, 15, 0, -1, -1))
-now = r.datetime
+    try:
+        ntp = tufts_ntp.set_ntp_time(esp)
+    except:
+    # manually set the time
+        now =  time.struct_time((2023, 2, 7, 13, 43, 15, 0, -1, -1))
+        rtc.RTC().datetime =  now #time.struct_time((2019, 5, 29, 15, 14, 15, 0, -1, -1))
+
+
+#   ntp = adafruit_ntp.NTP(pool, tz_offset=0)
+#   now = ntp.datetime
+
+
+
 # Pretty-parse the struct_time
 print("It is currently {}/{}/{} at {}:{}:{} UTC".format(
     now.tm_mon, now.tm_mday, now.tm_year,
@@ -322,4 +336,4 @@ while True:
     except OSError as e:
         print("Failed to update server, restarting ESP32\n", e)
         # put something here to actually reset the ESP32
-        continue
+        supervisor.reload()
