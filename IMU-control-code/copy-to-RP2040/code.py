@@ -22,8 +22,8 @@ import os
 import rtc
 import time
 import struct
-import adafruit_ntp
-import tufts_ntp
+import esp32spi_localtime
+from adafruit_esp32spi import adafruit_esp32spi_wifimanager
 
 # LED setup for onboard LED
 status_light = DigitalInOut(board.LED)
@@ -57,19 +57,22 @@ if esp.status == adafruit_esp32spi.WL_IDLE_STATUS:
 print("Firmware vers.", esp.firmware_version)
 print("MAC addr:", [hex(i) for i in esp.MAC_address])
 
-for ap in esp.scan_networks():
-    print("\t%s\t\tRSSI: %d" % (str(ap['ssid'], 'utf-8'), ap['rssi']))
-
-print("Connecting to AP...")
-while not esp.is_connected:
-    try:
-        esp.connect_AP(secrets["ssid"], secrets["password"])
-    except RuntimeError as e:
-        print("could not connect to AP, retrying: ", e)
-        continue
-print("Connected to", str(esp.ssid, "utf-8"), "\tRSSI:", esp.rssi)
+import adafruit_rgbled
+from adafruit_esp32spi import PWMOut
+RED_LED = PWMOut.PWMOut(esp, 26)
+GREEN_LED = PWMOut.PWMOut(esp, 27)
+BLUE_LED = PWMOut.PWMOut(esp, 25)
+status_light = adafruit_rgbled.RGBLED(RED_LED, BLUE_LED, GREEN_LED)
+wifi = adafruit_esp32spi_wifimanager.ESPSPI_WiFiManager(esp, secrets, status_light)
+wifi.connect()
+# print("Connecting to AP...")
+# while not esp.is_connected:
+#     try:
+#         esp.connect_AP(secrets["ssid"], secrets["password"])
+#     except RuntimeError as e:
+#         print("could not connect to AP, retrying: ", e)
+#         continue
 print("My IP address is", esp.pretty_ip(esp.ip_address))
-
 
 if secrets["ssid"]!="tufts_eecs":
     # now sync with NTP time
@@ -88,19 +91,16 @@ if secrets["ssid"]!="tufts_eecs":
         time.sleep(0.01)
 else:
     try:
-        ntp = tufts_ntp.set_ntp_time(esp)
+        #ntp = tufts_ntp.set_ntp_time(esp)
         #ntp = adafruit_ntp.NTP(pool, tz_offset=0)
-        now = ntp.datetime()
+        now = esp32spi_localtime.jsontime(wifi)
+        print("Got time from JSON")
     except Exception as e:
-        #manually set the time
+ #      manually set the time
         print("error:", e)
         print("Manually setting time")
         now =  time.struct_time((2023, 2, 7, 13, 43, 15, 0, -1, -1))
         rtc.RTC().datetime =  now #time.struct_time((2019, 5, 29, 15, 14, 15, 0, -1, -1))
-
-
-#   ntp = adafruit_ntp.NTP(pool, tz_offset=0)
-#   now = ntp.datetime
 
 
 
@@ -229,7 +229,6 @@ def led_off(environ):  # pylint: disable=unused-argument
     status_light.value = False
     return web_app.serve_file("static/index.html")
 
-
 def IMU_on(environ): # starts the IMU recording
     global IMU_recording
     IMU_recording = True
@@ -260,10 +259,6 @@ def IMU_off(environ):
     global timecount
     timecount = 0 # reset the global counter
     return web_app.serve_file("static/IMUoff.html")
-
-def preview_last_data(environ):
-    print("sending", filename, "to webserver")
-    return web_app.serve_file(filename)
 
 
 
@@ -296,7 +291,6 @@ web_app = SimpleWSGIApplication(static_dir=static)
 web_app.on("GET", "/IMU_on", IMU_on)
 web_app.on("GET", "/IMU_off", IMU_off)
 #web_app.on("POST", "/ajax/ledcolor", led_color)
-web_app.on("GET","/preview_last_data", preview_last_data)
 
 # Here we setup our server, passing in our web_app as the application
 server.set_interface(esp)
@@ -319,6 +313,7 @@ print("today is ", today) # printing to the REPL/terminal
 wsgiServer.start()
 while True:
     # Our main loop where we have the server poll for incoming requests
+    #print("*")
     try:
         wsgiServer.update_poll()
         # background tasks (like reading the IMU)

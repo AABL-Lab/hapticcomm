@@ -40,9 +40,7 @@ def set_ntp_time(esp):
     # convert seconds to the struct that rtc.datetime needs
     currenttime = time.localtime(t - NTP_TO_UNIX_EPOCH)
 
-    # now update the time on the board
-
-
+    # now update the realtime time on the board
     r = rtc.RTC()
     r.datetime = time.struct_time(currenttime)
     print("\n\n system time set, RTC.datetime =", r.datetime)
