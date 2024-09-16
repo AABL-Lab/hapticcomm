@@ -54,9 +54,9 @@ print("MAC addr:", [hex(i) for i in esp.MAC_address])
 
 import adafruit_rgbled
 from adafruit_esp32spi import PWMOut
-RED_LED = PWMOut.PWMOut(esp, 26)
+RED_LED = PWMOut.PWMOut(esp, 25)
 GREEN_LED = PWMOut.PWMOut(esp, 27)
-BLUE_LED = PWMOut.PWMOut(esp, 25)
+BLUE_LED = PWMOut.PWMOut(esp, 26)
 
 status_light = adafruit_rgbled.RGBLED(RED_LED, BLUE_LED, GREEN_LED)
 wifi = adafruit_esp32spi_wifimanager.ESPSPI_WiFiManager(esp, secrets, status_light)
