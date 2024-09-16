@@ -297,8 +297,9 @@ def main():
     hcpath = rospack.get_path('hapticcomm')
     #print(hcpath, "is the path used for hapticcomm")
     os.chdir(hcpath)
+
     ft_controller = ft.ForceTorqueController(controltype="PD",
-                                               K_P=-400.0, K_D=50.0)
+                                             K_P=-0.4, K_D=-5.0, threshold=2.0)
     
     quitcatch = False
 

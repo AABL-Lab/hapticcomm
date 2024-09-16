@@ -91,22 +91,29 @@ def setup_experiment():
 def humanhuman(cards, IP, trialnumber):
     # Start human-human trial        
     # Start upper and side camera
-    
-    # start IMU, allow participants to begin test card
-    print("Ready for test card, triangle, press any key to start IMU")
-    flowcontrol = input()
-    hl.IMUcontrol("http://"+IP, 1) # start IMU
-    
-    print("IMU started, begin test card now \n press any key to stop IMU")
-    flowcontrol = input()
+    testcard = True
+    while testcard == True:
+        # start IMU, allow participants to begin test card
+        print("Ready for test card, triangle, press any key to start IMU")
+        flowcontrol = input()
+        hl.IMUcontrol("http://"+IP, 1) # start IMU
+        
+        print("IMU started, begin test card now \n press any key to stop IMU")
+        flowcontrol = input()
+        
+        hl.IMUcontrol("http://"+IP, 0)    # stop IMU
+        
+        print("Repeat test card? Y or y to repeat, q to return to menu, any other key to continue")
+        flowcontrol = input()
+        if flowcontrol == "q":
+            return
+        elif flowcontrol =="Y" or flowcontrol =="y":
+            testcard = True
+        else:
+            testcard = False
 
-    hl.IMUcontrol("http://"+IP, 0)    # stop IMU
-    
-    print("Repeat test card? Y to repeat, q to return to menu, any other key to continue")
-    flowcontrol = input()
-    if flowcontrol == "q":
-        return
-    else:
+    card1 = True
+    while card1:
         # start IMU, allow participants to begin card 1
         print("Ready for card 1,", cards[0],"press any key to start IMU")
         startstopIMU = input()
@@ -116,13 +123,22 @@ def humanhuman(cards, IP, trialnumber):
         print("IMU started, begin card 1 now \n press any key to stop IMU")
         startstopIMU = input()
         hl.IMUcontrol("http://"+IP, 0)
-        
-        
+        print("Repeat card 1? Y to repeat, q to quit, any other key to continue to card 2")
+        flowcontrol = input()
+        if flowcontrol == "q":
+            return
+        elif flowcontrol =="Y" or flowcontrol =="y":
+            card1 = True
+        else:
+            card1 = False
     
-        # stop IMU, trial 1 finished
-        print("\n\n\n\nTell the participants to do one question of the survey now\n\n\n press enter when they are done")
-        control = input()
-        # start IMU, allow participants to begin card 2
+    # stop IMU, trial 1 finished
+    print("\n\n\n\nTell the participants to do one question of the survey now\n\n\n press enter when they are done")
+    control = input()
+
+    # start IMU, allow participants to begin card 2
+    card2 = True
+    while card2:
         print("Ready to start card 2 now, ", cards[1])
         startstopIMU = input()
         #start the IMU 
@@ -132,10 +148,21 @@ def humanhuman(cards, IP, trialnumber):
         startstopIMU = input()
         # stop IMU, trial 2 finished
         hl.IMUcontrol("http://"+IP, 0)
-        print("\n\n\n\nTell the participants to do one question of the survey now\n\n\n press enter when they are done")
-        control = input()
 
+        print("Repeat card 2? Y to repeat, q to quit, any other key to continue to card 3")
+        flowcontrol = input()
+        if flowcontrol == "q":
+            return
+        elif flowcontrol =="Y" or flowcontrol =="y":
+            card2 = True
+        else:
+            card2 = False
         
+    print("\n\n\n\nTell the participants to do one question of the survey now\n\n\n press enter when they are done")
+    control = input()
+
+    card3 = True
+    while card3:
         print("Ready to start card 3 ", cards[2])
         # start IMU, participants begin card 3
         startstopIMU = input()
@@ -146,9 +173,20 @@ def humanhuman(cards, IP, trialnumber):
         startstopIMU = input()
         # stop IMU, trial 3 finished
         hl.IMUcontrol("http://"+IP, 0)
-        print("\n\n\n\nTell the participants to do one question of the survey now\n\n\n press enter when they are done")
-        control = input()
         
+        print("Repeat card 3? Y to repeat, q to quit, any other key to finish")
+        flowcontrol = input()
+        if flowcontrol == "q":
+            return
+        elif flowcontrol =="Y" or flowcontrol =="y":
+            card3 = True
+        else:
+            card3 = False
+
+    print("\n\n\n\nTell the participants to do one question of the survey now\n\n\n press enter when they are done")
+    control = input()
+    print("Done with human-human trials. Download data from IMU")
+    return    
 
 def robothuman(cards, IP, trialnumber):
     # Introduce robot
@@ -378,7 +416,7 @@ if __name__ == "__main__":
     trialnumber = "test"
 
     ft_controller = ft.ForceTorqueController(controltype="PD",
-                                        K_P=-30.0, K_D=-3.0, threshold=3.0)
+                                               K_P=-0.4, K_D=-5.0, threshold=2.0)
     print("Force torque controller follow mode ready")
 
 
