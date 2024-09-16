@@ -7,7 +7,8 @@ import board
 import busio
 import rtc
 import time
-import adafruit_esp32spi.adafruit_esp32spi_socketpool as socketpool
+import adafruit_esp32spi.adafruit_esp32spi_socket as socket
+from adafruit_ntp import NTP
 
 TIMEOUT = 5
 # edit host and port to match server
@@ -18,28 +19,28 @@ NTP_TO_UNIX_EPOCH = 2208988800
 
 def set_ntp_time(esp):
     # create the socket
-    pool = socketpool.SocketPool(esp)
+    socket.set_interface(esp)
+    s = socket.socket()
 
     s.settimeout(TIMEOUT)
     # test for connectivity to server
-    print("Server ping:", esp.ping(HOST), "ms")
+    print("Server ping:", esp.ping(HOST), "ms to host ", HOST)
     print("Sending")
-    s.connect(socketaddr, conntype=esp.UDP_MODE)
-    packet = bytearray(48)
-    packet[0] = 0b00100011   # Not leap second, NTP version 4, Client mode
-    s.send(packet)
 
-    print("Receiving")
-    packet = s.recv(48)
-    seconds = struct.unpack_from("!I", packet, offset=len(packet) - 8)[0]
-    print("Time:", time.localtime(seconds - NTP_TO_UNIX_EPOCH))
+    data = b'\x1b' + 47 * b'\0'
+    s.connect((HOST, 123))
+    s.send(data) #, (HOST, PORT))
+    data, address = esp.recv(1024)
+    if data:
+        t = struct.unpack('!12I', data)[10]
+        #t -= NTP_TO_UNIX_EPOCH
+
+    print("Time:", time.localtime(t - NTP_TO_UNIX_EPOCH))
 
     # convert seconds to the struct that rtc.datetime needs
-    currenttime = time.localtime(seconds - NTP_TO_UNIX_EPOCH)
+    currenttime = time.localtime(t - NTP_TO_UNIX_EPOCH)
 
-    # now update the time on the board
-
-
+    # now update the realtime time on the board
     r = rtc.RTC()
     r.datetime = time.struct_time(currenttime)
     print("\n\n system time set, RTC.datetime =", r.datetime)
