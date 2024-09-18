@@ -49,7 +49,7 @@ def IMUcontrol(url,startstop):
                 tryagain = False
             except requests.RequestException as error:
                 print("error:", error)
-                print("try again?")
+                print("enter y to try again?")
                 control = input()
                 if control == "y":
                     tryagain = True

@@ -32,6 +32,8 @@ import time
 from study_runner.frames.loggers.rosbag_recorder import RosbagRecorder
 import forcetorquecontrol.forcetorquecontrol as ft
 
+startposition = [1.5920214543667193,1.866893900482904,2.802151733686583,1.527687738229784,6.1766950825672415,1.807115121916386,-1.1973379181817223]
+
 def setup_experiment():
 # Set up experiment            
     # set experiment number
@@ -188,8 +190,10 @@ def humanhuman(cards, IP, trialnumber):
     print("Done with human-human trials. Download data from IMU")
     return    
 
-def robothuman(cards, IP, trialnumber):
+def robotleader(cards, IP, trialnumber):
     # Introduce robot
+    print("Enter to have Beep introduce and move to start position")
+    input()
     hl.robotspeak("Hello, my name is Beep")
     hl.execute_motion_plan("trajectorypickles/home2start.pkl")
     print("press enter to start the practice task")
@@ -259,12 +263,14 @@ def robothuman(cards, IP, trialnumber):
 def humanleader(cards, IP, trialnumber): 
     # LEADER PARTICIPANT
 # Introduce robot
+    print("press enter to have Beep introduce themselves")
+    input()
     hl.robotspeak("Hello, my name is Beep")
     hl.execute_motion_plan("trajectorypickles/home2start.pkl")
     time.sleep(5)
-    print("press enter to close the gripper")
+    print("press enter to open the gripper")
     input()
-    gripper.close()
+    gripper.open()
     
     print("\n\n\n Ready for test card")
     followcard("triangle.pkl", IP, trialnumber)
@@ -319,21 +325,24 @@ def humanleader(cards, IP, trialnumber):
     input()
     gripper.open()
     hl.robotspeak("Thank you for participating in our study! Goodbye!")
+    arm.set_velocity(.5)
+    arm.move_to_joint_post(startposition)
     hl.execute_motion_plan("trajectorypickles/start2home.pkl")
     print("Leader participant complete")
     
-def followcard(card, IP, trialnumber):
-    print("y to open gripper, any other key to continue")
-    control = input()
-    if control == "y":
-        gripper.open()
-        print("enter to close gripper")
-        input()
-        gripper.close()
+def followcard(card, IP, trialnumber):    
+    print("Enter to go to start position. Make sure the arm is clear and gripper empty!")
+    input()
+    arm.set_velocity(.5)
+    arm.move_to_joint_pose(startposition)
+
+    print("press enter to close the gripper")
+    input()
+    gripper.close()
     hl.robotspeak("I am ready")
     # start cameras
 
-    print("Enter to start the task, ROSbag, and IMU when the participant is ready")
+    print("Check that the cameras are on \n Press enter to start the task, ROSbag, and IMU when the participant is ready")
     input()
     # setup ROSBAG every time you make a new file
     # topicslist is a list of strings of topics
@@ -357,20 +366,18 @@ def followcard(card, IP, trialnumber):
 
     print("press enter when the participant is done")
     input()
+    ft_controller.stop()
     # stop IMU
     hl.IMUcontrol("http://"+IP, 0)
     # stop ROSBAG
     recorder.stop() # stops the rosbag
-    ft_controller.stop()
+
     print("Forcetorquecontrol stopped, card done. Press enter to open the gripper")
     input()
     gripper.open()
     
         
 def runcard(cardname, IP, trialnumber):
-    print("y to move to start, enter to open the gripper")
-    input()
-    gripper.open() 
     hl.robotspeak("I am ready")
     print("enter to close gripper")
     input()
@@ -398,6 +405,10 @@ def runcard(cardname, IP, trialnumber):
 
     hl.IMUcontrol("http://"+IP, 0) # stops the IMU
     recorder.stop() # stops the rosbag
+    print("Enter to open the gripper")
+    input()
+    gripper.open() 
+
 
 if __name__ == "__main__":
     
@@ -443,7 +454,7 @@ if __name__ == "__main__":
             if cards == defaultcard:
                 print("Default card in use")
 
-            robothuman(cards, IP, trialnumber)
+            robotleader(cards, IP, trialnumber)
         elif menuchoice == "4":
             if cards == defaultcard:
                 print("default card in use")
@@ -451,6 +462,7 @@ if __name__ == "__main__":
         elif menuchoice == "0":
                 print("Choose waypoint to move to")
                 jointposition = hl.select_waypoint()
+                arm.set_velocity(.5)
                 arm.move_to_joint_pose(jointposition)
         else:
             print("Choose again")
