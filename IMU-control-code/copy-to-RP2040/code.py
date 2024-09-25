@@ -25,6 +25,16 @@ import struct
 import esp32spi_localtime
 from adafruit_esp32spi import adafruit_esp32spi_wifimanager
 
+magenta= (255,0,0)
+pink = (255,128,0)
+red = (255,255,51)
+green = (0,255,255)
+blue = (0,128,255)
+light_blue = (102,0,204)
+yellow = (0,255,0)
+purple = (255,0,100)
+orange = (100,100,51)
+
 # Get wifi details and more from a secrets.py file
 try:
     from secrets import secrets
@@ -57,7 +67,6 @@ from adafruit_esp32spi import PWMOut
 RED_LED = PWMOut.PWMOut(esp, 25)
 GREEN_LED = PWMOut.PWMOut(esp, 27)
 BLUE_LED = PWMOut.PWMOut(esp, 26)
-
 status_light = adafruit_rgbled.RGBLED(RED_LED, BLUE_LED, GREEN_LED)
 wifi = adafruit_esp32spi_wifimanager.ESPSPI_WiFiManager(esp, secrets, status_light)
 wifi.connect()
@@ -210,22 +219,21 @@ class SimpleWSGIApplication:
 # Our HTTP Request handlers
 def led_on(environ):  # pylint: disable=unused-argument
     print("LED on!")
-    status_light.color = (255,255,255)
+    status_light.color = green
     return web_app.serve_file("static/index.html")
-
 
 def led_off(environ):  # pylint: disable=unused-argument
     print("LED off!")
-    status_light.color = (0,0,0)
+    status_light.color = (255,255,255)
     return web_app.serve_file("static/index.html")
 
 def IMU_on(environ): # starts the IMU recording
     global IMU_recording
     IMU_recording = True
-    status_light.color = (0,255,255)
+    status_light.color = light_blue
     print("IMU recording")
     datenow = rtc.RTC().datetime
-    stringdate = "UTCtime:"+str(datenow[0])+","+str(datenow[1])+","+str(datenow[2])+","+str(datenow[3])+":"+str(datenow[4])+":"+str(datenow[5])
+    stringdate = "UTCtime:**"+str(datenow[0])+","+str(datenow[1])+","+str(datenow[2])+","+str(datenow[3])+":"+str(datenow[4])+":"+str(datenow[5])
     print("current date/time is ", stringdate)
     with open(filename, "a") as fp:
         # print the header into the file
@@ -236,7 +244,7 @@ def IMU_on(environ): # starts the IMU recording
 def IMU_off(environ):
     global IMU_recording
     IMU_recording = False
-    status_light.color = (0,0,0)
+    status_light.color = orange
     print("IMU stopped")
     with open(filename, "a") as fp:
         for row in IMU_data: # send each row in the IMU data to the file
@@ -252,7 +260,7 @@ def IMU_off(environ):
 
 def preview_last_data(environ):  # pylint: disable=unused-argument
     print("previewing")
-    status_light.color = (0,0,255)
+    status_light.color = purple
     return web_app.serve_file("IMU_readings.csv")
 
 
@@ -280,6 +288,7 @@ except OSError as e:
     ) from e
 
 web_app = SimpleWSGIApplication(static_dir=static)
+web_app.on("GET", "/", led_on)
 web_app.on("GET", "/IMU_on", IMU_on)
 web_app.on("GET", "/IMU_off", IMU_off)
 web_app.on("GET", "/preview_last_data", preview_last_data)
@@ -288,7 +297,7 @@ web_app.on("GET", "/preview_last_data", preview_last_data)
 # Here we setup our server, passing in our web_app as the application
 server.set_interface(esp)
 wsgiServer = server.WSGIServer(80, application=web_app)
-status_light.color=(0,255,0)
+status_light.color= green
 print("open this IP in your browser: ", esp.pretty_ip(esp.ip_address))
 
 # initialize the IMU recording and IMU timecount global,
@@ -299,7 +308,15 @@ timecount = 0
 IMU_data = []
 # open the file in "append" mode so we don't overwrite prior runs
 filename='IMU_readings.csv'
-today = rtc.RTC().datetime
+try:
+    with open(filename, "a") as fp:
+        # print the header into the file
+        fp.write("IMU restart"+"\n")
+        fp.flush()
+except Exception as e:
+    print("Not able to write to ", filename, "error", e)
+    status_light.color=red
+timenow = rtc.RTC().datetime
 print("server should be ready") # printing to the REPL/terminal
 
 # Start the webserver
