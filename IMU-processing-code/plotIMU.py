@@ -10,8 +10,11 @@ Xrotation = []
 Yrotation = []
 Zrotation = []
 
+print("Enter filename (with .csv) to process")
+filename = input()
 
-with open('IMU_readings2Aug2022.csv', newline='') as csvfile:
+
+with open(filename, newline='') as csvfile:
      IMUreader = csv.reader(csvfile, delimiter=',', quotechar='|')
      
      # This skips the first row of the CSV file.
@@ -25,14 +28,27 @@ with open('IMU_readings2Aug2022.csv', newline='') as csvfile:
                print("Finished the first set")
           
           #print(row)
-          timestamp.append(row[0])
-          Xaccel.append(row[1])
-          Yaccel.append(row[2])
-          Zaccel.append(row[3])
-          Xrotation.append(row[4])
-          Yrotation.append(row[5])
-          Zrotation.append(row[6])
+          try:
+               row[0] = row[0].replace('(', '')
+               row[6] = row[6].replace(')','')
 
+               timestamp.append(float(row[0]))
+               Xaccel.append(float(row[1]))
+               Yaccel.append(float(row[2]))
+               Zaccel.append(float(row[3]))
+               Xrotation.append(float(row[4]))
+               Yrotation.append(float(row[5]))
+               Zrotation.append(float(row[6]))
+          except:
+               print("Row ", row, "not added")
+               pass
+print("Xaccel = ", Xaccel)
+print("Yaccel = ", Yaccel)
+print("Zaccel = ", Zaccel)
+print("Xrot = ", Xrotation)
+print("Yrot = ", Yrotation)
+print("Zrotation = ", Zrotation)
+          
   
 # x-axis label
 plt.xlabel('Experiment Time')
