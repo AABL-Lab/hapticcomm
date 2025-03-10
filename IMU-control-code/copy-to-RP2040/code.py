@@ -233,13 +233,16 @@ def IMU_off(environ):
     global IMU_recording
     IMU_recording = False
     status_light.value = False
+    datenow = rtc.RTC().datetime
+    stringdate = "UTCtime:"+str(datenow[0])+","+str(datenow[1])+","+str(datenow[2])+","+str(datenow[3])+":"+str(datenow[4])+":"+str(datenow[5])
     print("IMU stopped")
     with open(filename, "a") as fp:
         for row in IMU_data: # send each row in the IMU data to the file
             #print(row, "writing to file", filename)
             fp.write(str(row)+"\n")
             fp.flush()
-        fp.write("end of logging\n")
+        fp.write("end of logging")
+        fp.write(stringdate+"\n")
         fp.flush()
     print("Wrote to file")
     global timecount
