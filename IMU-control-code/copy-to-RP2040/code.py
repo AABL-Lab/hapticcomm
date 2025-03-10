@@ -34,6 +34,7 @@ light_blue = (102,0,204)
 yellow = (0,255,0)
 purple = (255,0,100)
 orange = (100,100,51)
+logfile = "ipaddr.log"
 
 # Get wifi details and more from a secrets.py file
 try:
@@ -72,6 +73,14 @@ wifi = adafruit_esp32spi_wifimanager.ESPSPI_WiFiManager(esp, secrets, status_lig
 wifi.connect()
 
 print("My IP address is", esp.pretty_ip(esp.ip_address))
+with open(logfile, "a") as fp:
+        datenow = rtc.RTC().datetime
+        stringdate = "UTCtime:**"+str(datenow[0])+","+str(datenow[1])+","+str(datenow[2])+","+str(datenow[3])+":"+str(datenow[4])+":"+str(datenow[5])
+        # print the header into the file
+        fp.write("IP address on "+stringdate+": "+esp.pretty_ip(esp.ip_address))
+        fp.flush()
+
+
 
 if secrets["ssid"]!="tufts_eecs":
     # now sync with NTP time
@@ -244,13 +253,11 @@ def IMU_on(environ): # starts the IMU recording
 def IMU_off(environ):
     global IMU_recording
     IMU_recording = False
-<<<<<<< HEAD
     status_light.value = False
     datenow = rtc.RTC().datetime
     stringdate = "UTCtime:"+str(datenow[0])+","+str(datenow[1])+","+str(datenow[2])+","+str(datenow[3])+":"+str(datenow[4])+":"+str(datenow[5])
-=======
     status_light.color = orange
->>>>>>> a61723d7766f6bd656433bee04f682063677502b
+
     print("IMU stopped")
     with open(filename, "a") as fp:
         for row in IMU_data: # send each row in the IMU data to the file
