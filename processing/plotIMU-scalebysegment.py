@@ -3,11 +3,12 @@ import csv
 import sys
 import os
 import glob
+import pandas as pd
 
 
-def get_csv_data(filename, duration=None):
-# if duration is provided, this will scale the rowcount
-# by the number of seconds provided
+def get_csv_data(filename, breakpointfilename=None):
+
+     
      timestamp = []
      Xaccel = []
      Yaccel = []
@@ -15,13 +16,32 @@ def get_csv_data(filename, duration=None):
      Xrotation = []
      Yrotation = []
      Zrotation = []
+ 
 
+# if breakpoint filename is provided, breakpoints and duration will be added to the dictionary, otherwise get them manually
+     
+     if breakpointfilename==None:
+          duration, breakpoints = getmanualsegmentdata()
+          breakpointDF=None # so we do not try to overwrite this later
+     else:
+          breakpoints = []
+          breakpointdf = pd.read_csv(breakpointfilename)
+          print("df index: ", breakpointdf.info)
+          # read in the csv of breakpoint data as a Pandas DataFrame
 
      with open(filename, newline='') as csvfile:
           IMUreader = csv.reader(csvfile, delimiter=',', quotechar='|')
           started = False
           countershift = 0
-
+          
+          res = filename.split('/')
+          group =res[-1].split('-')[0].replace('group','')
+          subgroup = res[-1].split('-')[1]
+          card = res[-1].split('-')[2].split('.')[0]
+          print("group is ", group)
+          print("subgroup is ", subgroup)
+          print("card is ", card)
+          
           # This skips the first row of the CSV file.
           next(IMUreader)
 
@@ -53,6 +73,28 @@ def get_csv_data(filename, duration=None):
                     lasttimestamp = float(row[0])+countershift # for fixing counter restarts
                except:
                     print("Row ", row, "not added")
+
+
+          if breakpointdf is not None:
+               # now we look for matching breakpoint data for this row
+               print(breakpointdf['Group'])
+               df_g = breakpointdf.loc[breakpointdf['Group'] == int(group)]
+               df_sg = df_g.loc[df_g['Subgroup']==subgroup]
+               df_bp = df_sg.loc[df_sg['CARD']==card]
+               breakpoints = df_bp[['Start', 'L1E', "L2E", "L3E", "L4E", "L5E", 'Duration']].values.tolist()
+               print("extracted breakpoints", breakpoints)
+               # If it is hh data, there will be two lists, we just need it once
+               try:
+                    breakpoints = [ int(x) for x in breakpoints[0]]
+               except Exception as x:
+                    print(x)
+                    breakpoints = [int(x) for x in breakpoints]
+                    
+               duration = breakpoints[-1]
+                    
+               print("extracted breakpoints", breakpoints, "duration", duration)
+ 
+          
                    
 
           # print("time:", timestamp)
@@ -63,42 +105,59 @@ def get_csv_data(filename, duration=None):
           # print("Yrot = ", Yrotation)
           # print("Zrotation = ", Zrotation)
           
-          res = filename.split('/')
-          group =res[-1].split('-')[0]
-          subgroup = res[-1].split('-')[1]
-          print("group is ", group)
-
 
 
           
-          filenamedictionary = {'name': subgroup,'time': timestamp, 'Xaccel':Xaccel, 'Yaccel':Yaccel, 'Zaccel':Zaccel, 'Xrotation':Xrotation, 'Yrotation':Yrotation, 'Zrotation':Zrotation}
 
-          ######Correcting Timestamps with Duration ####
-          if duration != None:
-               newtimestamp = []
-               print("Correcting timestamps for provided duration ", duration, " seconds")
-               for time in timestamp:
-                    timescalefactor = lasttimestamp/duration
-                    #print("Time scaling by ", timescalefactor , "ticks per second")
-                    time = time/ timescalefactor
-                    #print("New time is ", time)
-                    newtimestamp.append(time)
+          
+          filenamedictionary = {'name': subgroup,'time': timestamp, 'Xaccel':Xaccel, 'Yaccel':Yaccel, 'Zaccel':Zaccel, 'Xrotation':Xrotation, 'Yrotation':Yrotation, 'Zrotation':Zrotation, 'breakpoints':breakpoints, 'duration': duration}
 
+          filenamedictionary = timestampcorrection(filenamedictionary, lasttimestamp)
+               
+          
+          
+          
+          return filenamedictionary
+
+
+def timestampcorrection(filenamedictionary, lasttimestamp):
+     duration = filenamedictionary['duration']
+     if float(duration) == 0:
+          filenamedictionary['duration']=filenamedictionary['time'][-1]
+          print("Duration not recorded, not correcting timestamps to clock time")
+          return filenamedictionary
+     
+     print("Correcting timestamps for provided duration ", duration, " seconds")
+     ######Correcting Timestamps with Duration ####
+     if duration != None:
+          newtimestamp = []
+
+          for time in filenamedictionary['time']:
+               timescalefactor = lasttimestamp/duration
+
+               #print("Time scaling by ", timescalefactor , "ticks per second")
+               time = time/ timescalefactor
+               #print("New time is ", time)
+               newtimestamp.append(time)
+               
                #print("new times :", newtimestamp)
                filenamedictionary['time'] = newtimestamp
                #print(filenamedictionary)
-
-          return filenamedictionary
+               
+     return filenamedictionary
 
 def plotallthedata(filenamedictionarylist, plottitle):
-
      figure, axis = plt.subplots(3,1)
      #fig1 = axis[0,0]
      #fig2 = axis[1,0]
      #fig3 = axis[2,0]
      figure.suptitle(plottitle)
 #     axis[0].set_title("X Acceleration"+plottitle)
+
      for set in filenamedictionarylist:
+          print("xaxis ", len(set['Xaccel']), "yaxis ", len(set['time']))
+          print("timedata", set['time'])
+          print("xaxisdata ", set['Xaccel'])
           axis[0].plot(set['time'],set['Xaccel'], label=set['name'])
      # frequency label
      axis[0].set_ylabel('X Acceleration (N)')
@@ -154,30 +213,65 @@ def get_files(path, extension, recursive=False):
                 print(filename)
                 yield file_path
 
-def scalebysegment(filenamedictionarylist, breakpoints, duration):
-     
+def scalebysegment(filenamedictionary):
+     print("###########################Scaling time to match up segments####################")
+     print("Segment breakpoints are ", filenamedictionary['breakpoints'], "and trial duration is ", filenamedictionary['duration'])
+     print("timestamps in this file are ", filenamedictionary['time'])
+     print("################################################################################")
      newtimestamp = []
-     print("Breaking segments into ", breakpoints, "segments and scaling as if each segment were 10 time units")
-     timestamps = filenamedictionarylist["time"]
+     timestamps = filenamedictionary["time"]
      lastpoint = 0
      sectionstart = 0
      
-     for time in timestamps:
-          for point in breakpoints:
+     for point in filenamedictionary['breakpoints']:
+          print("point is ", point, "and sectionstart is", sectionstart, "and duration is ", filenamedictionary['duration'])
+          for time in timestamps:
+               #print("time is", time)
                if time < point and time >= lastpoint:
                     newtime = time/point*10 + sectionstart
-                    print("In segment less than breakpoint ", point, "the time was ", time, "and the new time is ", newtime)
-                    newtimestamp.append(time)
-               else:
-                    lastpoint = point # advance to the next point
-                    sectionstart = sectionstart+10
-          lastpoint = 0
-          sectionstart = 0
+                    print("In segment ", lastpoint, "=< x < ", point, "the time was ", time, "and the new time is ", newtime)
+                    newtimestamp.append(newtime)
+               elif point == filenamedictionary['duration'] and time == filenamedictionary['duration']:
+                    newtime = time/filenamedictionary['duration']*10 + sectionstart
+                    print("Last point/ new end of trial is ", newtime)
+                    newtimestamp.append(newtime)
 
-     print("new times :", newtimestamp)
-     filenamedictionarylist['time'] = newtimestamp
-     return filenamedictionarylist
+          lastpoint = point # advance to the next point
+          if point !=0:
+               sectionstart = sectionstart+10
+                    
+     lastpoint = 0 #reset last point for new timestamp
+     sectionstart = 0 # reset section start for new timestamp
+                    
+     filenamedictionary['time'] = newtimestamp
+     #print(newtimestamp, 'are the new times')
+     print("filenamedictionary", filenamedictionary['name'], "has ", len(filenamedictionary['time']), "times and ", len(filenamedictionary['Xaccel']), "values")
+     #print(filenamedictionary['time'], "are the times")
+     return filenamedictionary
 
+
+
+def getmanualsegmentdata():
+     for file in filelist:
+          print("Enter duration of file ", file, "or enter for no scaling")
+          duration = input()
+          if duration != "":
+               duration = float(duration)
+          else:
+               duration = None
+
+       # option to enter breakpoints,
+       # like the identified timestamps for the six legs
+       
+          print("Enter breakpoints for file ", file, "as time from start to mark on the graph, separated by commas, or enter for none")
+          breakpoints = input()
+          if breakpoints != "":
+               breakpoints = breakpoints.split(',')
+               breakpoints = list(map(float, breakpoints))
+               print(breakpoints, "entered as break points") 
+          else:
+               breakpoints = [0]
+     return duration, breakpoints
 
 ##main
 try:
@@ -185,6 +279,7 @@ try:
 except:
      print("Enter directory to look for IMU csv files")
      directory = input()
+     
 filenamedictionarylist = []
 for f in get_files(directory, 'csv'): # not recursive:
      filenamedictionarylist.append(f)
@@ -214,27 +309,15 @@ criterianame = " and ".join(substrings)
 
 dictlist = []
 for file in filelist:
-     print("Enter duration of file ", file, "or enter for no scaling")
-     duration = input()
-     if duration != "":
-          duration = float(duration)
-     else:
-          duration = None
+     try:
+          breakpointsfile = sys.argv[2]                  
+                    
+     except:
+          breakpointsfile = None
 
-       # option to enter breakpoints,
-       # like the identified timestamps for the six legs
-       
-     print("Enter breakpoints for file ", file, "as time from start to mark on the graph, separated by commas, or enter for none")
-     breakpoints = input()
-     if breakpoints != "":
-          breakpoints = breakpoints.split(',')
-          breakpoints = list(map(float, breakpoints))
-          print(breakpoints, "entered as break points") 
-     else:
-          breakpoints = [0]
-     csvdict = get_csv_data(file, duration)
-     csvdict['breakpoints'] = breakpoints
-     #csvdict = scalebysegment(csvdict, breakpoints, duration)
+          
+     csvdict = get_csv_data(file, breakpointsfile)
+     csvdict = scalebysegment(csvdict) # includes breakpoints and duration
      dictlist.append(csvdict)
      
 plotallthedata(dictlist, criterianame)

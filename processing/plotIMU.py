@@ -295,15 +295,15 @@ for f in get_files(directory, 'csv'): # not recursive:
      filenamedictionarylist.append(f)
    #  plotjustone(f)
 
-#plot_by_card('dt', 'DT', filenamedictionarylist)
+plot_by_card('dt', 'DT', filenamedictionarylist)
 #plot_by_card('beaker','Beaker', filenamedictionarylist)
 #plot_by_card('-M','-M', filenamedictionarylist)
 #plot_by_card('parasail','Parasail', filenamedictionarylist)
 #plot_by_card('pentagon', 'Pentagon',filenamedictionarylist)
 #plot_by_card('jetski', 'Jetski', filenamedictionarylist)
 
-for group in range(1,18):
-    plot_by_group(str(group),filenamedictionarylist) 
+#for group in range(1,18):
+#    plot_by_group(str(group),filenamedictionarylist) 
 
 
 
