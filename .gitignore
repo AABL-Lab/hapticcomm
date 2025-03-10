@@ -1,5 +1,10 @@
 secrets.py
 IMU-processing-code/copy-to-RP2040/secrets.py
 *.mpy
+*.mkv
 .DS_Store
 *~
+*.pyc
+**/*.pyc
+IMU-control-code/copy-to-RP2040/IMU_readings.csv
+.venv/*
