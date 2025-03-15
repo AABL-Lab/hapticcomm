@@ -6,12 +6,12 @@ import numpy as np
 import glob
 import os
 import sys
-from datetime import datetime, timedelta, date
+from datetime import datetime, timedelta, date, time
 import itertools
 
 import re
 
-def get_csv_data(filename, breakpointfilename=None):
+def get_csv_data(filename, breakpointfilename=None, option=None, rezero=False):
     print("#############Processing File ", filename, "#######################")
     # find the beginning of the actual IMU data and strip off the start time, removing any prior lines
     with open(filename, 'r') as f:
@@ -57,7 +57,7 @@ def get_csv_data(filename, breakpointfilename=None):
         breakpoint_df = pd.read_csv(breakpointfilename)
         print(f"Attempting to read breakpoint file: {breakpointfilename}")
         #print(f"Breakpoints DataFrame:\n{breakpoint_df.head()}")
-
+        
         breakpoint_df = breakpoint_df.applymap(lambda x: str(x).replace('(', '').replace(')', ''))
         #print(f"Unique Groups: {breakpoint_df['Group'].unique()}")
         #print(f"Unique Subgroups: {breakpoint_df['Subgroup'].unique()}")
@@ -81,7 +81,12 @@ def get_csv_data(filename, breakpointfilename=None):
         trial_starttime = str(matched_bp.loc[index_list[0],'24hStart'])
         trial_starttime  = trial_starttime.replace(" ", "")  # Remove all spaces
         print("Trial Start Time ", trial_starttime)
-        trial_starttime = datetime.strptime(trial_starttime, "%H:%M:%S").time()
+
+        #### We want to exclude datasets that do not have breakpoints in the file, like the ones with no video data
+        if trial_starttime == "exclude":
+            return # this will return as None and then get excluded from the printing
+        else:
+            trial_starttime = datetime.strptime(trial_starttime, "%H:%M:%S").time()
 
 
         print("Trial duration is ", duration)
@@ -95,12 +100,55 @@ def get_csv_data(filename, breakpointfilename=None):
     waittime = datetime.combine(date.min,trial_starttime)-  datetime.combine(date.min, clocktimeIMUstart)
     print("difference between trial start time", trial_starttime, " and IMU clock start time ", clocktimeIMUstart," is ", waittime)
 
-    df, scaledbreakpoints = rescale_by_segment(df, breakpoints, waittime, filename)
-    #df, scaledbreakpoints = rescale_alldata_1to100(df, breakpoints, waittime, filename)
+
+
+    if option == "clocktime":
+        
+        df, scaledbreakpoints = rescale_all_data_clocktime(df, breakpoints, waittime, filename, clocktimeIMUstart, duration)
+    
+    elif option == "segment":
+        df, scaledbreakpoints = rescale_by_segment(df, breakpoints, waittime, filename)
+    elif option == "100":
+        df, scaledbreakpoints = rescale_alldata_1to100(df, breakpoints, waittime, filename)
+
+        
+    # rezero the data based on the average acceleration in the first half of the wait time
+    if rezero == True:
+        df = rezero_IMU(df, waittime)
 
 
         
-    return {'name': filename, 'data': df, 'breakpoints': scaledbreakpoints, 'duration': duration, 'clocktimeIMUstart': clocktimeIMUstart}
+    return {'name': filename, 'data': df, 'breakpoints': scaledbreakpoints, 'duration': duration, 'clocktimeIMUstabyrt': clocktimeIMUstart}
+
+
+def rezero_IMU(df, waittime):
+    half_wait_time = waittime.total_seconds() / 2
+
+    # Initialize a new DataFrame to store the adjusted data
+    adjusted_df = df.copy()
+    
+    # Loop through each column that represents an axis and adjust it
+    axis_columns = ["Xaccel", "Yaccel", "Zaccel", "Xrotation", "Yrotation", "Zrotation"]
+
+
+    # Find the index where the timestamp <= half the wait time
+    print("the type of wait_time is ", type(half_wait_time))
+    
+    half_wait_index = df[df["time"] <= half_wait_time].index
+    
+    # For each axis, subtract the mean of the first half of the wait time
+    for axis in axis_columns:
+        # Get the mean of the first half of the data
+        mean_value = df.loc[half_wait_index, axis].mean()
+        
+        # Subtract this mean from the entire axis data
+        adjusted_df[axis] = df[axis] - mean_value
+
+        # Check if the adjusted values are more than +/- 3 from the mean and set those values to 0
+        adjusted_df[axis] = adjusted_df[axis].apply(lambda x: 0 if abs(x) > 3 else x)
+    
+
+    return adjusted_df
 
 
 
@@ -117,7 +165,7 @@ def rescale_by_segment(df, breakpoints, waittime, filename):
     first_segment = df[df['time'] < breakpoints[0]].copy()
     first_segment.loc[:, 'segmentscaledtime'] =  np.interp(first_segment['time'], (df['time'].min(), breakpoints[0]), (-1,0))
     scaled_segments.append(first_segment)
-    print(first_segment)
+    #print("first segment is ", first_segment)
     
     # Process all intermediate segments
     for i in range(len(breakpoints) - 1):
@@ -129,8 +177,9 @@ def rescale_by_segment(df, breakpoints, waittime, filename):
         
     # Process the last segment (after the last breakpoint) if any
     last_segment = df[df['time'] >= breakpoints[-1]].copy()
-    last_segment.loc[:, 'segmentscaledtime'] = np.interp(last_segment['time'], (breakpoints[-1], df['time'].max()), (len(breakpoints), (len(breakpoints) + 1) ))
+    last_segment.loc[:, 'segmentscaledtime'] = np.interp(last_segment['time'], (breakpoints[-1], df['time'].max()), (len(breakpoints), (len(breakpoints)) ))
     scaled_segments.append(last_segment)
+    #print("last segment is ", last_segment)
     
     # Combine all segments into a new DataFrame
     df_scaled = pd.concat(scaled_segments).sort_values('time')
@@ -141,7 +190,46 @@ def rescale_by_segment(df, breakpoints, waittime, filename):
     return df_scaled, [0,1,2,3,4,5,6]
         
 
+def rescale_all_data_clocktime(df, breakpoints, waittime, filename, clocktimeIMUstart, task_duration):
+    # For this we re-scale the IMU data so it all corresponds to clock time even when the IMU data rate
+    # varies between files
+    print("type of clocktime, waittime, task_duration", type(clocktimeIMUstart),type(waittime), type(task_duration))
+    base_date = datetime(1970, 1, 1)  # Dummy date (1970-01-01) for conversion
+    clocktimeIMUstart_dt = base_date.replace(hour=clocktimeIMUstart.hour,
+                                             minute=clocktimeIMUstart.minute,
+                                             second=clocktimeIMUstart.second)
+    
+    # Step 2: Add `waittime` and `task_duration` (convert task_duration to timedelta)
+    time_end = clocktimeIMUstart_dt + waittime + timedelta(seconds=task_duration)
 
+    print("type of clocktime, waittime, task_duration", type(clocktimeIMUstart),type(waittime), type(task_duration)) 
+
+    time_start = clocktimeIMUstart
+    #time_end = clocktimeIMUstart + waittime + timedelta(seconds= task_duration)
+
+    print("start time is ", time_start , "trial end time is ", time_end)
+
+    # Compute the time elapsed in seconds from the start time for each row
+    total_timestamps = df['timestamp'].iloc[-1] # last time in the file
+    df['time'] = (df['timestamp'] / total_timestamps) * task_duration
+    
+    # Adjust the breakpoints to be in seconds
+    if 0 <= waittime.total_seconds() <= 15:
+        bp_start = breakpoints[0]
+        bp_end = breakpoints[-1] + waittime.total_seconds()
+        
+        # Add the wait time to each breakpoint to adjust them to actual seconds
+        print("Breakpoints start at ", bp_start, "and end at ", bp_end)
+        scaledbreakpoints = [
+            (bp + waittime.total_seconds())  # Add the wait time to each breakpoint
+            for bp in breakpoints
+        ]
+    else:
+        print("Wait time for file ", filename , "may be miscalculated as it is more than 15 seconds, check data")
+        
+    return df, scaledbreakpoints
+    
+    
     
         
 def rescale_alldata_1to100(df, breakpoints, waittime, filename):
@@ -171,6 +259,8 @@ def rescale_alldata_1to100(df, breakpoints, waittime, filename):
             for bp in breakpoints
         ]
         input()
+
+    print("The last timestamp in scale to 100 ", df['timestamp'].max())
         
     return df, scaledbreakpoints
 
@@ -192,6 +282,12 @@ def get_manual_segment_data():
 
 
 def plot_data(filenamedictionary_list, title):
+
+    for x in filenamedictionary_list:
+        try:
+            print(x['name'], "is the name of the file")
+        except:
+            print(x , "is not a dictionary")
     try:
         filenamedictionary_list[0]['data']['segmentscaledtime']
         # X positions for labels
@@ -203,9 +299,9 @@ def plot_data(filenamedictionary_list, title):
         dividerlabels = []
     
     # Create a figure with 3 subplots for each axis
-    fig, axes = plt.subplots(3, 1, sharex=True, figsize=(10, 6))
+    fig, axes = plt.subplots(3, 2, sharex=True, figsize=(10, 6))
     fig.suptitle(title)
-    labels = ['X Acceleration', 'Y Acceleration', 'Z Acceleration']
+    labels = ['X Acceleration', 'Y Acceleration', 'Z Acceleration', 'X rotation', 'Y rotation', 'Z rotation']
     # Generate a list of distinct colors (you can expand this list if you have more datasets)
     color_cycle = itertools.cycle(['r', 'g', 'b', 'c', 'm', 'y', 'k'])  # You can add more colors to the list
 
@@ -240,10 +336,14 @@ def plot_data(filenamedictionary_list, title):
     try:
         min_time = int(min(d['data']['segmentscaledtime'].min() for d in filenamedictionary_list))
         max_time = int(max(d['data']['segmentscaledtime'].max() for d in filenamedictionary_list))
+        #for d in filenamedictionary_list:
+        #    print(d['data']['segmentscaledtime'])
+ 
     except KeyError:
         min_time = int(min(d['data']['time'].min() for d in filenamedictionary_list))
         max_time = int(max(d['data']['time'].max() for d in filenamedictionary_list))
-        print("min time is ", min_time, "max time is ", max_time)
+
+    print("min time is ", min_time, "max time is ", max_time)
     
     # Set the x-axis limits to match the data range
     axes[-1].set_xlim(min_time-.5, max_time)
@@ -275,7 +375,19 @@ def main():
     print("Files found are ", files)
     
     breakpoints_file = sys.argv[2] if len(sys.argv) > 2 else None
-    datasets = [get_csv_data(file, breakpoints_file) for file in files]
+    datasets = []
+
+    options = input("Which time scaling option do you want? clocktime, segment, 100")
+    rezero_option = input("Do you want to rezero the acceleration data? y or n (or enter for n)")
+    if rezero_option =='y' or rezero_option == 'Y':
+        rezero = True
+    else:
+        rezero = False
+    
+    for file in files:
+        thisdata = get_csv_data(file, breakpoints_file, options, rezero)
+        if thisdata is not None:
+            datasets.append(thisdata)
     plot_data(datasets, " & " .join(substrings))
 
 
