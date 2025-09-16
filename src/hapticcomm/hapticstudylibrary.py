@@ -4,9 +4,9 @@
 # kat.allen@tufts.edu
 try:
     from hapticcomm import waypointgathering
-except:
+except ImportError:
     import waypointgathering
-from boto3 import Session
+    from boto3 import Session
 from botocore.exceptions import BotoCoreError, ClientError
 from contextlib import closing
 import os
@@ -26,6 +26,8 @@ import hlpr_dialogue_production.msg as dialogue_msgs
 import sys
 # for controlling the IMU
 import requests
+import forcetorquecontrol.forcetorquecontrol as ft
+
 
 def is_number(s):
     try:
@@ -45,9 +47,9 @@ def IMUcontrol(url,startstop):
                 r = requests.get(url+"/IMU_on", headers={'host': 'IMUcontrol.com'}, timeout=timeout)
                 print("IMU on requested")
                 tryagain = False
-            except Exception as error:
+            except requests.RequestException as error:
                 print("error:", error)
-                print("try again?")
+                print("enter y to try again?")
                 control = input()
                 if control == "y":
                     tryagain = True
@@ -61,7 +63,7 @@ def IMUcontrol(url,startstop):
             print("IMU off requested")
             # it would be nice to do getIMUdata here, but not currently working
             
-        except Exception as error:
+        except requests.RequestException as error:
             print("error:", error)
 
 
@@ -83,7 +85,7 @@ def getIMUdata(url, filename):
 
         
 
-    except Exception as error:
+    except requests.RequestException as error:
         print("error:", error)
 
  
@@ -121,7 +123,7 @@ def predownload_speech():
 
 
     
-def create_trajectory_from_waypoints(filename="waypoints.csv"):
+def create_trajectory_from_waypoints(filename="waypoints.csv", arm=None):
     # filename should be a CSV file, formatted like waypointgathering.py
     print("Loading waypoints from", filename)
 
@@ -284,10 +286,7 @@ def select_waypoint():
                     print(positionname_list)
     return jointposition
         
-
-
-                        
-if __name__=="__main__":
+def main():
     # these need to be done exactly once across all files
     rospy.init_node('hapticcomm')
     arm = armpy.arm.Arm()
@@ -296,10 +295,14 @@ if __name__=="__main__":
     rospack = rospkg.RosPack()
     rospack.list()
     hcpath = rospack.get_path('hapticcomm')
-    print(hcpath, "is the path used for hapticcomm")
+    #print(hcpath, "is the path used for hapticcomm")
     os.chdir(hcpath)
+
+    ft_controller = ft.ForceTorqueController(controltype="PD",
+                                             K_P=-0.4, K_D=-5.0, threshold=2.0)
     
     quitcatch = False
+
     while quitcatch ==False:
         print("\n\n\n\n")	
         print("This is a library file but here are some things to test\n")
@@ -316,9 +319,9 @@ if __name__=="__main__":
             print("making trajectory from waypoints. Enter filename or enter for default (waypoints.csv)")
             filename = input()
             if len(filename)==0:
-                create_trajectory_from_waypoints()
+                create_trajectory_from_waypoints(arm=arm)
             else:        
-                create_trajectory_from_waypoints(filename)
+                create_trajectory_from_waypoints(filename, arm=arm)
         elif menuchoice =="q":
             print("exiting")
             quitcatch = True
@@ -345,8 +348,10 @@ if __name__=="__main__":
             print("Choose the filename (from trajectorypickles) for the trajectory you want to run")
             planfilename = input()
             # velocity is set when you create the pickle
-            execute_motion_plan("trajectorypickles/"+planfilename)
-
+            try:
+                execute_motion_plan("trajectorypickles/"+planfilename)
+            except:
+                print("issue with motion plan, try again")
             
         elif menuchoice=="5":
             print("Text to speak?\n")
@@ -364,12 +369,13 @@ if __name__=="__main__":
                 pass
 
         elif menuchoice == "free":
-            print("Starting force control mode")
-            arm.start_force_control()
+            print("Starting bota force control mode")
+
+            ft_controller.start()
             
         elif menuchoice == "lock":
             print("Stop force control mode")
-            arm.stop_force_control()
+            ft_controller.stop()
 
         elif menuchoice =="IMU":
             print("1: start, 0: stop, anything else: go back")
@@ -390,9 +396,14 @@ if __name__=="__main__":
             arm.set_velocity(speed)
         elif menuchoice =="tm":
             robotspeak("Hello, my name is Boop")
-            # move at the same time
+            # move at the same time FIXME
         else:
             pass
                 
 
-        
+
+
+
+                        
+if __name__=="__main__":
+    main()
