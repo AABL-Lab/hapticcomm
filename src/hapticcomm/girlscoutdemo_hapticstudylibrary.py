@@ -4,9 +4,9 @@
 # kat.allen@tufts.edu
 try:
     from hapticcomm import waypointgathering
-except ImportError:
+except:
     import waypointgathering
-    from boto3 import Session
+from boto3 import Session
 from botocore.exceptions import BotoCoreError, ClientError
 from contextlib import closing
 import os
@@ -24,15 +24,8 @@ import smach_ros
 import actionlib
 import hlpr_dialogue_production.msg as dialogue_msgs
 import sys
-from std_msgs.msg import String
 # for controlling the IMU
 import requests
-
-try:
-    import forcetorquecontrol.forcetorquecontrol as ft
-    ftsensor = True
-except:
-    ftsensor = False
 
 def is_number(s):
     try:
@@ -52,9 +45,9 @@ def IMUcontrol(url,startstop):
                 r = requests.get(url+"/IMU_on", headers={'host': 'IMUcontrol.com'}, timeout=timeout)
                 print("IMU on requested")
                 tryagain = False
-            except requests.RequestException as error:
+            except Exception as error:
                 print("error:", error)
-                print("enter y to try again?")
+                print("try again?")
                 control = input()
                 if control == "y":
                     tryagain = True
@@ -68,7 +61,7 @@ def IMUcontrol(url,startstop):
             print("IMU off requested")
             # it would be nice to do getIMUdata here, but not currently working
             
-        except requests.RequestException as error:
+        except Exception as error:
             print("error:", error)
 
 
@@ -90,7 +83,7 @@ def getIMUdata(url, filename):
 
         
 
-    except requests.RequestException as error:
+    except Exception as error:
         print("error:", error)
 
  
@@ -111,19 +104,7 @@ def robotspeak(text2speak):
     print("got result")
     print(client.get_result())
 
-def llmspeechcallback(data):
-    client = actionlib.SimpleActionClient("/HLPR_Dialogue",dialogue_msgs.DialogueActAction)
-    rospy.loginfo("waiting for server")
-    client.wait_for_server()
-    rospy.loginfo("got server")
-    rospy.loginfo(rospy.get_caller_id() + "I heard %s", data.data)
-    print("sending", data, "to the speech server")
-    client.send_goal(dialogue_msgs.DialogueActGoal(text_or_key=data))
-    print("goal sent")
-    client.wait_for_result()
-    print("got result")
-    print(client.get_result())
-    
+
 
 
 def predownload_speech():
@@ -140,7 +121,7 @@ def predownload_speech():
 
 
     
-def create_trajectory_from_waypoints(filename="waypoints.csv", arm=None):
+def create_trajectory_from_waypoints(filename="waypoints.csv"):
     # filename should be a CSV file, formatted like waypointgathering.py
     print("Loading waypoints from", filename)
 
@@ -230,9 +211,8 @@ def execute_motion_plan(planfilename="triangle.pkl"):
     print("running the loaded trajectory", planfilename)
     print("Executing the trajectory")
     for i, plan in enumerate(plan):
-        print("executing plan", i) 
+        print("executing plan", i)
         arm.move_robot(plan)
-
 
 def select_waypoint():
     print("Enter filename for waypoint from file, 0 to specify joints manually, or enter to select from waypoints.csv")
@@ -303,7 +283,10 @@ def select_waypoint():
                     print(positionname_list)
     return jointposition
         
-def main():
+
+
+                        
+if __name__=="__main__":
     # these need to be done exactly once across all files
     rospy.init_node('hapticcomm')
     arm = armpy.arm.Arm()
@@ -312,19 +295,14 @@ def main():
     rospack = rospkg.RosPack()
     rospack.list()
     hcpath = rospack.get_path('hapticcomm')
-    #print(hcpath, "is the path used for hapticcomm")
+    print(hcpath, "is the path used for hapticcomm")
     os.chdir(hcpath)
-
-    if ftsensor == True:
-        ft_controller = ft.ForceTorqueController(controltype="PD",
-                                             K_P=-0.4, K_D=-5.0, threshold=2.0)
     
     quitcatch = False
-
     while quitcatch ==False:
         print("\n\n\n\n")	
         print("This is a library file but here are some things to test\n")
-        print("1: gather waypoints\n 2: make trajectory from waypoints\n 3:plan path and move to named waypoint\n 4: load a saved plan \n 5: say something \n 6: listen for text on llmspeech topic \n g: change gripper status\n free: force control mode \n lock: stop force control mode \n IMU: start and stop recording \n speed: set arm motion speed \nq: exit")
+        print("1: gather waypoints\n 2: make trajectory from waypoints\n 3:plan path and move to named waypoint\n 4: load a saved plan \n 5: say something \n g: change gripper status\n free: force control mode \n lock: stop force control mode \n IMU: start and stop recording \n speed: set arm motion speed \nq: exit")
         menuchoice = input()	
         if menuchoice =="1": 
             print("Gathering waypoints.  Enter filename (or enter to default to waypoints.csv)")
@@ -337,9 +315,9 @@ def main():
             print("making trajectory from waypoints. Enter filename or enter for default (waypoints.csv)")
             filename = input()
             if len(filename)==0:
-                create_trajectory_from_waypoints(arm=arm)
+                create_trajectory_from_waypoints()
             else:        
-                create_trajectory_from_waypoints(filename, arm=arm)
+                create_trajectory_from_waypoints(filename)
         elif menuchoice =="q":
             print("exiting")
             quitcatch = True
@@ -366,72 +344,7 @@ def main():
             print("Choose the filename (from trajectorypickles) for the trajectory you want to run")
             planfilename = input()
             # velocity is set when you create the pickle
-            try:
-                execute_motion_plan("trajectorypickles/"+planfilename)
-            except:
-                print("issue with motion plan, try again")
-            
-        elif menuchoice=="5":
-            print("Text to speak?\n")
-            speaktext = input()
-            robotspeak(speaktext)
-
-        elif menuchoice =="6":
-             print("Waiting for text on llmspeechtext, ctrl-c to return to menu")
-             rospy.Subscriber("llmspeechtext", String, llmspeechcallback)
-             rospy.spin()
-
-        elif menuchoice == "g":
-            print("Open (o) or close (c) or back (any other key)?")
-            grippercommand = input()
-            if grippercommand == "o":
-                gripper.open()
-            elif grippercommand == "c":
-                gripper.close()
-            else:
-                pass
-
-        elif menuchoice == "free":
-            print("Starting bota force control mode")
-            if ftsensor == True:
-                ft_controller.start()
-            else:
-                print("FT sensor not installed")
-            
-        elif menuchoice == "lock":
-            print("Stop force control mode")
-            if ftsensor == True:
-                ft_controller.stop()
-            else:
-                print("FT sensor not installed")
-
-        elif menuchoice =="IMU":
-            print("1: start, 0: stop, anything else: go back")
-            control = input()
-            URL = "http://10.5.0.6"
-            if control == "0":
-                print("sending stop to", URL)
-                IMUcontrol(URL ,0)
-
-            elif control == "1":
-                print("Sending start to", URL)
-                IMUcontrol(URL, 1)
-            else:
-                pass
-        elif menuchoice =="speed":
-            print("Set the arm speed, 0-1")
-            speed=float(input())
-            arm.set_velocity(speed)
-        elif menuchoice =="tm":
-            robotspeak("Hello, my name is Boop")
-            # move at the same time FIXME
-        else:
-            pass
+            execute_motion_plan("trajectorypickles/"+planfilename)
                 
 
-
-
-
-                        
-if __name__=="__main__":
-    main()
+        
