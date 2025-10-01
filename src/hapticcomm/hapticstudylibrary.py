@@ -116,14 +116,16 @@ def llmspeechcallback(data):
     rospy.loginfo("waiting for server")
     client.wait_for_server()
     rospy.loginfo("got server")
-    rospy.loginfo(rospy.get_caller_id() + "I heard %s", data.data)
-    print("sending", data, "to the speech server")
-    client.send_goal(dialogue_msgs.DialogueActGoal(text_or_key=data))
-    print("goal sent")
-    client.wait_for_result()
-    print("got result")
-    print(client.get_result())
-    
+    try: 
+        rospy.loginfo(rospy.get_caller_id() + "I heard %s", data.data)
+        print("sending", data, "to the speech server")
+        client.send_goal(dialogue_msgs.DialogueActGoal(text_or_key=data.data))
+        print("goal sent")
+        client.wait_for_result()
+        print("got result")
+        print(client.get_result())
+    except Exception as e:
+        print("error ", e)
 
 
 def predownload_speech():

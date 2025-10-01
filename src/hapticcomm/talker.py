@@ -43,12 +43,13 @@ def talker():
     pub = rospy.Publisher('llmspeechtext', String, queue_size=10)
     rospy.init_node('llmspeechnode', anonymous=True)
     rate = rospy.Rate(.1) # 10hz
+    hello_str = "hello world"
     while not rospy.is_shutdown():
-        hello_str = "hello world %s" % rospy.get_time()
         rospy.loginfo(hello_str)
         pub.publish(hello_str)
         rate.sleep()
-
+        hello_str = hello_str + " again"
+        print("type of ", hello_str, "is", type(hello_str))
 if __name__ == '__main__':
     try:
         talker()
