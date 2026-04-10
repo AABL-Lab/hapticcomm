@@ -5,3 +5,5 @@
  - some processing code for the video of the study
 
 In src, there is the robot control code, including the control code for follower mode (a PI controller) and the haptic library which gives the robot speech, motion, etc.
+
+Requires https://github.com/AABL-Lab/forcetorquecontrol
